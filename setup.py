@@ -2,7 +2,12 @@ from setuptools import setup
 import versioneer
 
 requirements = [
-    # package requirements go here
+    "gooey"
+]
+
+dev_requirements = [
+    "black",
+    "mypy"
 ]
 
 setup(
