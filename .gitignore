@@ -60,3 +60,9 @@ target/
 
 # pyenv python configuration file
 .python-version
+
+# custom
+data/*
+!data/.gitkeep
+.vscode/
+gooey_config.json
