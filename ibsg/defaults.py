@@ -1,5 +1,5 @@
-{
-    "dtypes": {
+DEFAULTS = {
+    "dtype": {
         "UUID": "category",
         "cso_small_area": "category",
         "geo_small_area": "category",
@@ -110,7 +110,7 @@
         "DeliveredEnergyPerM2FloorArea": "float64",
         "TotalDeliveredEnergy": "float64",
         "ElectricityPEFactor": "float32",
-        "ElectricityCO2Factor": "float32"
+        "ElectricityCO2Factor": "float32",
     },
     "mappings": {
         "BER Private": {
@@ -172,14 +172,14 @@
             "Suspended Wooden Floor Description": "is_suspended_wooden_floor",
             "Wall weighted Uvalue": "wall_uvalue",
             "Door Weighted Uvalue": "door_uvalue",
-            "Roof Weighted Uvalue": "roof_uvale",
+            "Roof Weighted Uvalue": "roof_uvalue",
             "Floor Weighted Uvalue": "floor_uvalue",
-            "WindowsWeighted Uvalue": "windows_uvalue",
+            "WindowsWeighted Uvalue": "window_uvalue",
             "Wall Total Area": "wall_area",
             "Door Total Area": "door_area",
             "Roof Total Area": "roof_area",
             "Floor Total Area": "floor_area",
-            "Windows Total Area": "windows_area",
+            "Windows Total Area": "window_area",
             "Energy Rating": "energy_rating",
             "Energy Value": "energy_value",
             "SHMainPrimaryEnergy": "main_sh_primary_energy_1",
@@ -208,7 +208,7 @@
             "DeliveredEnergyPerM2FloorArea": "delivered_energy_per_m2",
             "TotalDeliveredEnergy": "delivered_energy",
             "ElectricityPEFactor": "elec_primary_energy_factor",
-            "ElectricityCO2Factor": "elec_co2_factor"
+            "ElectricityCO2Factor": "elec_co2_factor",
         }
-    }
+    },
 }

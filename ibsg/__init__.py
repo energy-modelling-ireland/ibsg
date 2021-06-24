@@ -7,6 +7,7 @@ __version__ = get_versions()["version"]
 del get_versions
 
 _DIRPATH = Path(__file__).parent
+from .defaults import DEFAULTS
 
-with open(_DIRPATH / "defaults.json", "r") as f:
-    DEFAULTS = json.load(f)
+# with open(_DIRPATH / "defaults.json", "r") as f:
+#     DEFAULTS = json.load(f)

@@ -4,8 +4,6 @@ import versioneer
 install_requires = ["gooey", "pandas"]
 dev_requires = ["black", "mypy"]
 
-data_files = ["ibsg/" + file for file in ["dtypes.json"]]
-
 setup(
     name="ibsg",
     version=versioneer.get_version(),
@@ -18,7 +16,6 @@ setup(
     packages=["ibsg"],
     entry_points={"console_scripts": ["ibsg=ibsg.cli:cli"]},
     install_requires=install_requires,
-    package_data={"geopandas": data_files},
     keywords="ibsg",
     classifiers=[
         "Programming Language :: Python :: 2.7",
