@@ -8,3 +8,5 @@ del get_versions
 
 _DIRPATH = Path(__file__).parent
 from .defaults import DEFAULTS
+from .defaults import COUNTIES
+from .defaults import POSTCODES
