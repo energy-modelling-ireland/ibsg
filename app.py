@@ -56,6 +56,11 @@ def main():
         clean_small_area_bers = _clean_small_area_bers(
             bers=raw_sa_bers, small_area_ids=sa_ids_2016
         )
+        ## Download
+        _download_csv(
+            df=filtered_bers,
+            filename=f"clean_small_area_bers_{datetime.date.today()}.zip",
+        )
 
 
 @st.cache
@@ -133,6 +138,16 @@ def _filter_by_postcode(bers: pd.DataFrame, postcodes: List[str]) -> pd.DataFram
         _raise_for_all_query(selected_postcodes)
         selected_bers = bers[bers["countyname"].str.title().isin(selected_postcodes)]
     return selected_bers
+
+
+def _download_csv(df: pd.DataFrame, filename: str):
+    # workaround from streamlit/streamlit#400
+    STREAMLIT_STATIC_PATH = pathlib.Path(st.__path__[0]) / "static"
+    DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
+    if not DOWNLOADS_PATH.is_dir():
+        DOWNLOADS_PATH.mkdir()
+    df.to_csv(DOWNLOADS_PATH / filename, compression="zip", index=False)
+    st.markdown(f"Download [{filename}](downloads/{filename})")
 
 
 if __name__ == "__main__":
