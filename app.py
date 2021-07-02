@@ -1,97 +1,106 @@
 import datetime
 import pathlib
 from typing import List
+from zipfile import ZipFile
 
 import pandas as pd
 import streamlit as st
 
 from ibsg import clean
+from ibsg import io
 
 
 def main():
     st.header("🏠 Irish Building Stock Generator (IBSG) 🏠")
     ## Load
-    sa_bers_file = st.file_uploader(label="Upload Small Area BERs", type=["csv"])
-    raw_sa_bers = _load_small_area_bers(sa_bers_file)
-    sa_ids_2016 = _load_small_area_ids()
+    sa_bers_file = st.file_uploader(
+        "Upload your zipped csv file of Small Area BERs",
+        type="zip",
+    )
+    if sa_bers_file:
+        raw_sa_bers = _load_small_area_bers(sa_bers_file)
+        if raw_sa_bers is None:
+            st.write("⚠️ Please upload a zipped csv file - not a zipped folder!")
+            return
+        sa_ids_2016 = _load_small_area_ids()
 
-    with st.form("Apply Filters"):
-        ## Filter
-        sa_bers_in_countyname = _filter_by_substrings(
-            raw_sa_bers,
-            column_name="countyname",
-            all_substrings=[
-                "Co. Carlow",
-                "Co. Cavan",
-                "Co. Clare",
-                "Co. Cork",
-                "Co. Donegal",
-                "Co. Dublin",
-                "Co. Galway",
-                "Co. Kerry",
-                "Co. Kildare",
-                "Co. Kilkenny",
-                "Co. Laois",
-                "Co. Leitrim",
-                "Co. Limerick",
-                "Co. Longford",
-                "Co. Louth",
-                "Co. Mayo",
-                "Co. Meath",
-                "Co. Monaghan",
-                "Co. Offaly",
-                "Co. Roscommon",
-                "Co. Sligo",
-                "Co. Tipperary",
-                "Co. Waterford",
-                "Co. Westmeath",
-                "Co. Wexford",
-                "Co. Wicklow",
-                "Cork City",
-                "Dublin 1",
-                "Dublin 10",
-                "Dublin 11",
-                "Dublin 12",
-                "Dublin 13",
-                "Dublin 14",
-                "Dublin 15",
-                "Dublin 16",
-                "Dublin 17",
-                "Dublin 18",
-                "Dublin 2",
-                "Dublin 20",
-                "Dublin 22",
-                "Dublin 24",
-                "Dublin 3",
-                "Dublin 4",
-                "Dublin 5",
-                "Dublin 6",
-                "Dublin 6W",
-                "Dublin 7",
-                "Dublin 8",
-                "Dublin 9",
-                "Galway City",
-                "Limerick City",
-                "Waterford City",
-            ],
-        )
+        with st.form("Apply Filters"):
+            ## Filter
+            sa_bers_in_countyname = _filter_by_substrings(
+                raw_sa_bers,
+                column_name="countyname",
+                all_substrings=[
+                    "Co. Carlow",
+                    "Co. Cavan",
+                    "Co. Clare",
+                    "Co. Cork",
+                    "Co. Donegal",
+                    "Co. Dublin",
+                    "Co. Galway",
+                    "Co. Kerry",
+                    "Co. Kildare",
+                    "Co. Kilkenny",
+                    "Co. Laois",
+                    "Co. Leitrim",
+                    "Co. Limerick",
+                    "Co. Longford",
+                    "Co. Louth",
+                    "Co. Mayo",
+                    "Co. Meath",
+                    "Co. Monaghan",
+                    "Co. Offaly",
+                    "Co. Roscommon",
+                    "Co. Sligo",
+                    "Co. Tipperary",
+                    "Co. Waterford",
+                    "Co. Westmeath",
+                    "Co. Wexford",
+                    "Co. Wicklow",
+                    "Cork City",
+                    "Dublin 1",
+                    "Dublin 10",
+                    "Dublin 11",
+                    "Dublin 12",
+                    "Dublin 13",
+                    "Dublin 14",
+                    "Dublin 15",
+                    "Dublin 16",
+                    "Dublin 17",
+                    "Dublin 18",
+                    "Dublin 2",
+                    "Dublin 20",
+                    "Dublin 22",
+                    "Dublin 24",
+                    "Dublin 3",
+                    "Dublin 4",
+                    "Dublin 5",
+                    "Dublin 6",
+                    "Dublin 6W",
+                    "Dublin 7",
+                    "Dublin 8",
+                    "Dublin 9",
+                    "Galway City",
+                    "Limerick City",
+                    "Waterford City",
+                ],
+            )
 
-        ## Clean
-        clean_small_area_bers = _clean_small_area_bers(
-            bers=sa_bers_in_countyname,
-            small_area_ids=sa_ids_2016,
-        )
+            ## Clean
+            clean_small_area_bers = _clean_small_area_bers(
+                bers=sa_bers_in_countyname,
+                small_area_ids=sa_ids_2016,
+            )
 
-        ## Submit
-        st.form_submit_button(label="Re-apply Filters")
+            ## Submit
+            st.form_submit_button(label="Re-apply Filters")
 
-    save_to_csv_selected = st.button("Save data to csv?")
-    if save_to_csv_selected:
-        ## Download
-        _download_csv(
-            df=clean_small_area_bers,
-            filename=f"ibsg_buildings_{datetime.date.today()}_small_area.zip",
-        )
+        save_to_csv_selected = st.button("Save to csv?")
+        if save_to_csv_selected:
+            ## Download
+            _download_csv(
+                df=clean_small_area_bers,
+                filename=f"ibsg_buildings_{datetime.date.today()}_small_area.zip",
+            )
 
 
 @st.cache
@@ -123,11 +132,17 @@ def _load_small_area_bers(file) -> pd.DataFrame:
         "suppl_sh_boiler_efficiency_adjustment_factor",
     ]
     if file:
-        bers = pd.read_csv(file)
+        try:
+            bers = pd.read_csv(file, compression="zip").pipe(
+                clean.standardise_ber_private_column_names
+            )
+        except UnicodeDecodeError:
+            return
     else:
-        bers = pd.read_csv("data/BER.public.14.05.2021/BER.public.14.05.2021.csv")
-    standardised_bers = bers.pipe(clean.standardise_ber_private_column_names)
-    return standardised_bers[extract_columns]
+        bers = io.read_ber_private(
+            "data/BER.public.14.05.2021/BER.public.14.05.2021.csv"
+        ).pipe(clean.standardise_ber_private_column_names)
+    return bers[extract_columns]
 
 
 @st.cache
