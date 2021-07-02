@@ -100,7 +100,7 @@ def main():
             ## Download
             _download_csv(
                 df=clean_small_area_bers,
-                filename=f"ibsg_buildings_{datetime.date.today()}_small_area.zip",
+                filename=f"ibsg_buildings_{datetime.date.today()}_small_area.csv",
             )
 
 
@@ -253,13 +253,12 @@ def _filter_by_substrings(
 
 def _download_csv(df: pd.DataFrame, filename: str):
     # workaround from streamlit/streamlit#400
-    streamlit_static_path = Path(st.__path__[0]) / "static"
-    downloads_path = streamlit_static_path / "downloads"
-    if not downloads_path.is_dir():
-        downloads_path.mkdir()
-    filepath = downloads_path / filename
-    df.to_csv(filepath, compression="zip", index=False)
-    st.markdown(f"Download <a href='{filepath.resolve()}'>{filename}</a>")
+    STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
+    DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
+    if not DOWNLOADS_PATH.is_dir():
+        DOWNLOADS_PATH.mkdir()
+    df.to_csv(DOWNLOADS_PATH / filename, index=False)
+    st.markdown(f"[{filename}](downloads/{filename})")
 
 
 if __name__ == "__main__":
