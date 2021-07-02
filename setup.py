@@ -1,7 +1,7 @@
 from setuptools import setup
 import versioneer
 
-install_requires = ["gooey", "pandas"]
+install_requires = ["icontract", "streamlit", "pandas", "typeguard"]
 dev_requires = ["black", "mypy"]
 
 setup(
