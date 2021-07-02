@@ -23,9 +23,6 @@ def main():
     if zipped_csv_of_bers:
         ## Load
         raw_sa_bers = _load_small_area_bers(zipped_csv_of_bers)
-        if raw_sa_bers.empty:
-            st.write("⚠️ Please upload a zipped csv file - not a zipped folder!")
-            return
         sa_ids_2016 = _load_small_area_ids()
 
         with st.form("Apply Filters"):
