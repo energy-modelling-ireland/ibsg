@@ -147,7 +147,10 @@ def _load_small_area_bers(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
 
 @st.cache
 def _load_small_area_ids() -> List[str]:
-    return pd.read_csv("data/small_area_ids_2016.csv", squeeze=True).to_list()
+    return pd.read_csv(
+        "https://storage.googleapis.com/codema-dev/small_area_ids_2016.csv",
+        squeeze=True,
+    ).to_list()
 
 
 def _clean_small_area_bers(
