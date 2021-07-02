@@ -6,8 +6,6 @@ import pandas as pd
 import streamlit as st
 
 from ibsg import clean
-from ibsg import POSTCODES
-from ibsg import COUNTIES
 
 
 def main():
@@ -19,15 +17,68 @@ def main():
 
     with st.form("Apply Filters"):
         ## Filter
-        sa_bers_in_counties = _filter_by_county(raw_sa_bers, COUNTIES)
-        sa_bers_in_postcodes = _filter_by_postcode(raw_sa_bers, POSTCODES)
-        bers_in_selected_region = min(
-            [sa_bers_in_counties, sa_bers_in_postcodes], key=len
+        sa_bers_in_countyname = _filter_by_substrings(
+            raw_sa_bers,
+            column_name="countyname",
+            all_substrings=[
+                "Co. Carlow",
+                "Co. Cavan",
+                "Co. Clare",
+                "Co. Cork",
+                "Co. Donegal",
+                "Co. Dublin",
+                "Co. Galway",
+                "Co. Kerry",
+                "Co. Kildare",
+                "Co. Kilkenny",
+                "Co. Laois",
+                "Co. Leitrim",
+                "Co. Limerick",
+                "Co. Longford",
+                "Co. Louth",
+                "Co. Mayo",
+                "Co. Meath",
+                "Co. Monaghan",
+                "Co. Offaly",
+                "Co. Roscommon",
+                "Co. Sligo",
+                "Co. Tipperary",
+                "Co. Waterford",
+                "Co. Westmeath",
+                "Co. Wexford",
+                "Co. Wicklow",
+                "Cork City",
+                "Dublin 1",
+                "Dublin 10",
+                "Dublin 11",
+                "Dublin 12",
+                "Dublin 13",
+                "Dublin 14",
+                "Dublin 15",
+                "Dublin 16",
+                "Dublin 17",
+                "Dublin 18",
+                "Dublin 2",
+                "Dublin 20",
+                "Dublin 22",
+                "Dublin 24",
+                "Dublin 3",
+                "Dublin 4",
+                "Dublin 5",
+                "Dublin 6",
+                "Dublin 6W",
+                "Dublin 7",
+                "Dublin 8",
+                "Dublin 9",
+                "Galway City",
+                "Limerick City",
+                "Waterford City",
+            ],
         )
 
         ## Clean
         clean_small_area_bers = _clean_small_area_bers(
-            bers=bers_in_selected_region,
+            bers=sa_bers_in_countyname,
             small_area_ids=sa_ids_2016,
         )
 
@@ -166,48 +217,20 @@ def _clean_small_area_bers(
     return clean_bers
 
 
-def _raise_for_all_query(x):
-    if "All" in x:
-        raise ValueError("Please deselect 'All'!")
-
-
-def _filter_by_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
-    selected_columns = st.multiselect(
-        "Select Columns", ["All"] + columns, default="All"
+def _filter_by_substrings(
+    df: pd.DataFrame, column_name: str, all_substrings: List[str]
+) -> pd.DataFrame:
+    selected_substrings = st.multiselect(
+        f"Select {column_name}", all_substrings, default=all_substrings
     )
-    if selected_columns == ["All"]:
-        selected_rows = df[columns]
+    if selected_substrings == all_substrings:
+        selected_df = df
     else:
-        _raise_for_all_query(selected_columns)
-        selected_rows = df[selected_columns]
-    return selected_rows
-
-
-def _filter_by_county(bers: pd.DataFrame, counties: List[str]) -> pd.DataFrame:
-    selected_counties = st.multiselect(
-        "Select Counties", ["All"] + counties, default="All"
-    )
-    if selected_counties == ["All"]:
-        selected_bers = bers
-    else:
-        _raise_for_all_query(selected_counties)
-        counties_to_search = "|".join(selected_counties)
-        selected_bers = bers[
-            bers["countyname"].str.title().str.contains(counties_to_search, regex=True)
+        substrings_to_search = "|".join(selected_substrings)
+        selected_df = df[
+            df[column_name].str.title().str.contains(substrings_to_search, regex=True)
         ]
-    return selected_bers
-
-
-def _filter_by_postcode(bers: pd.DataFrame, postcodes: List[str]) -> pd.DataFrame:
-    selected_postcodes = st.multiselect(
-        "Select Postcodes", ["All"] + postcodes, default="All"
-    )
-    if selected_postcodes == ["All"]:
-        selected_bers = bers
-    else:
-        _raise_for_all_query(selected_postcodes)
-        selected_bers = bers[bers["countyname"].str.title().isin(selected_postcodes)]
-    return selected_bers
+    return selected_df
 
 
 def _download_csv(df: pd.DataFrame, filename: str):
