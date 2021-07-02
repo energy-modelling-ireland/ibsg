@@ -1,8 +1,11 @@
 import datetime
-import pathlib
+from io import BytesIO
+import os
+from pathlib import Path
 from typing import List
 from zipfile import ZipFile
 
+import icontract
 import pandas as pd
 import streamlit as st
 
@@ -12,14 +15,15 @@ from ibsg import io
 
 def main():
     st.header("🏠 Irish Building Stock Generator (IBSG) 🏠")
-    ## Load
-    sa_bers_file = st.file_uploader(
+    zipped_csv_of_bers = st.file_uploader(
         "Upload your zipped csv file of Small Area BERs",
         type="zip",
     )
-    if sa_bers_file:
-        raw_sa_bers = _load_small_area_bers(sa_bers_file)
-        if raw_sa_bers is None:
+
+    if zipped_csv_of_bers:
+        ## Load
+        raw_sa_bers = _load_small_area_bers(zipped_csv_of_bers)
+        if raw_sa_bers.empty:
             st.write("⚠️ Please upload a zipped csv file - not a zipped folder!")
             return
         sa_ids_2016 = _load_small_area_ids()
@@ -104,7 +108,13 @@ def main():
 
 
 @st.cache
-def _load_small_area_bers(file) -> pd.DataFrame:
+@icontract.require(
+    lambda zipped_csv_of_bers: len(
+        [f for f in ZipFile(zipped_csv_of_bers).namelist() if "csv" in f]
+    )
+    == 1
+)
+def _load_small_area_bers(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
     extract_columns = [
         "small_area",
         "year_of_construction",
@@ -131,18 +141,11 @@ def _load_small_area_bers(file) -> pd.DataFrame:
         "main_hw_boiler_efficiency_adjustment_factor",
         "suppl_sh_boiler_efficiency_adjustment_factor",
     ]
-    if file:
-        try:
-            bers = pd.read_csv(file, compression="zip").pipe(
-                clean.standardise_ber_private_column_names
-            )
-        except UnicodeDecodeError:
-            return
-    else:
-        bers = io.read_ber_private(
-            "data/BER.public.14.05.2021/BER.public.14.05.2021.csv"
-        ).pipe(clean.standardise_ber_private_column_names)
-    return bers[extract_columns]
+    zip = ZipFile(zipped_csv_of_bers)
+    filename = [f for f in zip.namelist() if "csv" in f][0]
+    return io.read_ber_private(zip.open(filename)).pipe(
+        clean.standardise_ber_private_column_names
+    )[extract_columns]
 
 
 @st.cache
@@ -250,7 +253,7 @@ def _filter_by_substrings(
 
 def _download_csv(df: pd.DataFrame, filename: str):
     # workaround from streamlit/streamlit#400
-    STREAMLIT_STATIC_PATH = pathlib.Path(st.__path__[0]) / "static"
+    STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
     DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
     if not DOWNLOADS_PATH.is_dir():
         DOWNLOADS_PATH.mkdir()

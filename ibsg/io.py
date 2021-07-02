@@ -1,12 +1,13 @@
+from io import BytesIO
+
 import pandas as pd
 
 from ibsg import DEFAULTS
 
 
-def read_ber_private(filepath: str, dtype=DEFAULTS["dtype"]) -> pd.DataFrame:
+def read_ber_private(file: BytesIO, dtype=DEFAULTS["dtype"]) -> pd.DataFrame:
     return pd.read_csv(
-        filepath,
+        file,
         dtype=dtype,
         encoding="latin-1",
-        compression="zip",
     )
