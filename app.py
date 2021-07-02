@@ -9,68 +9,74 @@ from ibsg import clean
 from ibsg import POSTCODES
 from ibsg import COUNTIES
 
-OUTPUT_COLUMNS = [
-    "small_area",
-    "year_of_construction",
-    "energy_value",
-    "type_of_rating",
-    "living_area_percent",
-    "roof_area",
-    "roof_uvalue",
-    "wall_area",
-    "wall_uvalue",
-    "floor_area",
-    "floor_uvalue",
-    "window_area",
-    "window_uvalue",
-    "door_area",
-    "door_uvalue",
-    "ground_floor_area",
-    "first_floor_area",
-    "second_floor_area",
-    "third_floor_area",
-    "main_sh_boiler_efficiency",
-    "main_hw_boiler_efficiency",
-    "main_sh_boiler_efficiency_adjustment_factor",
-    "main_hw_boiler_efficiency_adjustment_factor",
-    "suppl_sh_boiler_efficiency_adjustment_factor",
-]
-
 
 def main():
-    st.header(" 🧹 Irish Building Energy Ratings (BER)")
+    st.header("🏠 Irish Building Stock Generator (IBSG) 🏠")
     ## Load
     sa_bers_file = st.file_uploader(label="Upload Small Area BERs", type=["csv"])
-    raw_sa_bers = _load_small_area_bers(sa_bers_file, columns=OUTPUT_COLUMNS)
+    raw_sa_bers = _load_small_area_bers(sa_bers_file)
     sa_ids_2016 = _load_small_area_ids()
 
     with st.form("Apply Filters"):
         ## Filter
         sa_bers_in_counties = _filter_by_county(raw_sa_bers, COUNTIES)
         sa_bers_in_postcodes = _filter_by_postcode(raw_sa_bers, POSTCODES)
-        filtered_bers = min([sa_bers_in_counties, sa_bers_in_postcodes], key=len)
-        submit_button = st.form_submit_button(label="Apply")
+        bers_in_selected_region = min(
+            [sa_bers_in_counties, sa_bers_in_postcodes], key=len
+        )
 
-    if submit_button:
         ## Clean
         clean_small_area_bers = _clean_small_area_bers(
-            bers=raw_sa_bers, small_area_ids=sa_ids_2016
+            bers=bers_in_selected_region,
+            small_area_ids=sa_ids_2016,
         )
+
+        ## Submit
+        st.form_submit_button(label="Re-apply Filters")
+
+    save_to_csv_selected = st.button("Save data to csv?")
+    if save_to_csv_selected:
         ## Download
         _download_csv(
-            df=filtered_bers,
-            filename=f"clean_small_area_bers_{datetime.date.today()}.zip",
+            df=clean_small_area_bers,
+            filename=f"ibsg_buildings_{datetime.date.today()}_small_area.zip",
         )
 
 
 @st.cache
-def _load_small_area_bers(file, columns: List[str]) -> pd.DataFrame:
+def _load_small_area_bers(file) -> pd.DataFrame:
+    extract_columns = [
+        "small_area",
+        "year_of_construction",
+        "energy_value",
+        "type_of_rating",
+        "living_area_percent",
+        "roof_area",
+        "roof_uvalue",
+        "wall_area",
+        "wall_uvalue",
+        "floor_area",
+        "floor_uvalue",
+        "window_area",
+        "window_uvalue",
+        "door_area",
+        "door_uvalue",
+        "ground_floor_area",
+        "first_floor_area",
+        "second_floor_area",
+        "third_floor_area",
+        "main_sh_boiler_efficiency",
+        "main_hw_boiler_efficiency",
+        "main_sh_boiler_efficiency_adjustment_factor",
+        "main_hw_boiler_efficiency_adjustment_factor",
+        "suppl_sh_boiler_efficiency_adjustment_factor",
+    ]
     if file:
         bers = pd.read_csv(file)
     else:
         bers = pd.read_csv("data/BER.public.14.05.2021/BER.public.14.05.2021.csv")
     standardised_bers = bers.pipe(clean.standardise_ber_private_column_names)
-    return standardised_bers[columns]
+    return standardised_bers[extract_columns]
 
 
 @st.cache
@@ -78,22 +84,86 @@ def _load_small_area_ids() -> List[str]:
     return pd.read_csv("data/small_area_ids_2016.csv", squeeze=True).to_list()
 
 
-@st.cache
 def _clean_small_area_bers(
     bers: pd.DataFrame,
     small_area_ids: List[str],
 ) -> pd.DataFrame:
-    return (
-        bers.pipe(clean.is_not_provisional)
-        .pipe(clean.is_valid_floor_area)
-        .pipe(clean.is_valid_living_area_percentage)
-        .pipe(clean.is_valid_sh_boiler_efficiency)
-        .pipe(clean.is_valid_hw_boiler_efficiency)
-        .pipe(clean.is_valid_sh_boiler_efficiency_adjustment_factor)
-        .pipe(clean.is_valid_hw_boiler_efficiency_adjustment_factor)
-        .pipe(clean.is_valid_suppl_boiler_efficiency_adjustment_factor)
-        .pipe(clean.is_valid_small_area_id, small_area_ids)
+    filter_names = [
+        "Is not provisional",
+        "0m² < ground_floor_area < 1000m²",
+        "5% < living_area_percent < 90%",
+        "main_sh_boiler_efficiency > 19%",
+        "19% < main_hw_boiler_efficiency < 320%",
+        "main_sh_boiler_efficiency_adjustment_factor > 0.7",
+        "main_hw_boiler_efficiency_adjustment_factor > 0.7",
+        "suppl_sh_boiler_efficiency_adjustment_factor > 19",
+        "Is valid small area id",
+    ]
+    selected_filters = st.multiselect(
+        "Select Filters",
+        options=filter_names,
+        default=filter_names,
     )
+    clean_bers = (
+        bers.copy()
+        .pipe(
+            clean.get_rows_meeting_condition,
+            filter_name="Is not provisional",
+            selected_filters=selected_filters,
+            condition="type_of_rating != 'P '",
+        )
+        .pipe(
+            clean.get_rows_meeting_condition,
+            filter_name="0m² < ground_floor_area < 1000m²",
+            selected_filters=selected_filters,
+            condition="ground_floor_area > 30 and ground_floor_area < 1000",
+        )
+        .pipe(
+            clean.get_rows_meeting_condition,
+            filter_name="5% < living_area_percent < 90%",
+            selected_filters=selected_filters,
+            condition="living_area_percent < 90 or living_area_percent > 5",
+        )
+        .pipe(
+            clean.get_rows_meeting_condition,
+            filter_name="main_sh_boiler_efficiency > 19%",
+            selected_filters=selected_filters,
+            condition="main_sh_boiler_efficiency > 19",
+        )
+        .pipe(
+            clean.get_rows_meeting_condition,
+            filter_name="19% < main_hw_boiler_efficiency < 320%",
+            selected_filters=selected_filters,
+            condition="main_hw_boiler_efficiency < 320 or main_hw_boiler_efficiency > 19",
+        )
+        .pipe(
+            clean.get_rows_meeting_condition,
+            filter_name="main_sh_boiler_efficiency_adjustment_factor > 0.7",
+            selected_filters=selected_filters,
+            condition="main_sh_boiler_efficiency_adjustment_factor > 0.7",
+        )
+        .pipe(
+            clean.get_rows_meeting_condition,
+            filter_name="main_hw_boiler_efficiency_adjustment_factor > 0.7",
+            selected_filters=selected_filters,
+            condition="main_hw_boiler_efficiency_adjustment_factor > 0.7",
+        )
+        .pipe(
+            clean.get_rows_meeting_condition,
+            filter_name="suppl_sh_boiler_efficiency_adjustment_factor > 19",
+            selected_filters=selected_filters,
+            condition="suppl_sh_boiler_efficiency_adjustment_factor > 19",
+        )
+        .pipe(
+            clean.get_rows_equal_to_values,
+            filter_name="Is valid small area id",
+            selected_filters=selected_filters,
+            on_column="small_area",
+            values=small_area_ids,
+        )
+    )
+    st.write("⚠️Filtering removed" f" {len(bers) - len(clean_bers)}" " buildings!")
+    return clean_bers
 
 
 def _raise_for_all_query(x):

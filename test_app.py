@@ -1,5 +1,8 @@
+from typing import List
+
 from numpy import exp
 import pandas as pd
+from pandas.core.frame import DataFrame
 from pandas.testing import assert_frame_equal
 import pytest
 
