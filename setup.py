@@ -2,8 +2,8 @@ from setuptools import setup
 import versioneer
 
 install_requires = open("requirements.txt").read().strip().split("\n")
-dev_requires = ["black", "mypy"]
-
+extras = {"dev": ["black", "mypy"], "test": ["pytest-cov", "pytest-datadir"]}
+extras["all"] = sum(extras.values(), [])
 
 setup(
     name="ibsg",
@@ -17,6 +17,7 @@ setup(
     packages=["ibsg"],
     entry_points={"console_scripts": ["ibsg=ibsg.cli:cli"]},
     install_requires=install_requires,
+    extras_require=extras,
     keywords="ibsg",
     classifiers=[
         "Programming Language :: Python :: 2.7",
