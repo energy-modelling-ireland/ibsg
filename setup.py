@@ -1,8 +1,9 @@
 from setuptools import setup
 import versioneer
 
-install_requires = ["icontract", "streamlit", "pandas", "typeguard"]
+install_requires = open("requirements.txt").read().strip().split("\n")
 dev_requires = ["black", "mypy"]
+
 
 setup(
     name="ibsg",
