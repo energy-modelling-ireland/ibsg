@@ -7,7 +7,7 @@ from pandas.core.frame import DataFrame
 from pandas.testing import assert_frame_equal
 import pytest
 
-import app
+from ibsg import small_areas
 
 
 @pytest.mark.parametrize(
@@ -38,7 +38,7 @@ def test_filter_by_postcodes(
         return selected_postcodes
 
     monkeypatch.setattr("app.st.multiselect", _mock_multiselect)
-    output = app._filter_by_substrings(
+    output = small_areas._filter_by_substrings(
         df=bers, column_name="countyname", all_substrings=counties
     )
     assert_frame_equal(output, expected_output)
@@ -46,7 +46,7 @@ def test_filter_by_postcodes(
 
 def test_load_small_area_bers_raises_error_on_empty_file(datadir, monkeypatch):
     with pytest.raises(ViolationError):
-        app._load_small_area_bers(datadir / "empty_zip_archive.zip")
+        small_areas._load_small_area_bers(datadir / "empty_zip_archive.zip")
 
 
 @pytest.mark.parametrize(
@@ -57,8 +57,10 @@ def test_load_small_area_bers_raises_error_on_empty_file(datadir, monkeypatch):
     ],
 )
 def test_main(filename, datadir, monkeypatch):
-    def _mock_file_uploader(*args, **kwargs):
-        return datadir / filename
+    def _mock_load_small_area_ids(*args, **kwargs) -> List[str]:
+        return pd.read_csv(datadir / "small_area_ids_2016.csv", squeeze=True).to_list()
 
-    monkeypatch.setattr("app.st.file_uploader", _mock_file_uploader)
-    app.main()
+    monkeypatch.setattr(
+        "ibsg.small_areas._load_small_area_ids", _mock_load_small_area_ids
+    )
+    small_areas.main(datadir / filename)
