@@ -9,6 +9,7 @@ from stqdm import stqdm
 import streamlit as st
 
 from ibsg import clean
+from ibsg import DEFAULTS
 from ibsg import filter
 from ibsg import io
 
@@ -104,9 +105,11 @@ def main(email_address: str) -> pd.DataFrame:
     ),
 )
 def _load_postcode_bers(filepath: Path) -> pd.DataFrame:
+    dtype = DEFAULTS["postcodes"]["dtype"]
+    mappings = DEFAULTS["postcodes"]["mappings"]
     zip = ZipFile(filepath)
     filename = [f for f in zip.namelist() if "BERPublicsearch.txt" in f][0]
-    return io.read(zip.open(filename), category="postcodes", sep="\t")
+    return io.read(zip.open(filename), dtype=dtype, mappings=mappings, sep="\t")
 
 
 def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
