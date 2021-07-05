@@ -11,13 +11,6 @@ from typeguard import typechecked
 from ibsg import DEFAULTS
 
 
-def standardise_ber_private_column_names(
-    ber: pd.DataFrame,
-    mappings: Optional[Dict[str, str]] = DEFAULTS["mappings"]["small_area_bers"],
-):
-    return ber.rename(columns=mappings)
-
-
 @typechecked
 @icontract.ensure(lambda result: len(result) != 0)
 def get_rows_meeting_condition(

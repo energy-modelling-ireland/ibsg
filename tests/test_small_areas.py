@@ -10,40 +10,6 @@ import pytest
 from ibsg import small_areas
 
 
-@pytest.mark.parametrize(
-    "bers,selected_postcodes,counties,expected_output",
-    [
-        (
-            pd.DataFrame({"countyname": ["DUBLIN 11", "CO. GALWAY", "CO. CORK"]}),
-            ["Dublin 11"],
-            ["Dublin", "Galway", "Cork"],
-            pd.DataFrame({"countyname": ["DUBLIN 11"]}),
-        ),
-        (
-            pd.DataFrame({"countyname": ["Dublin", "Galway", "Cork"]}),
-            ["Dublin", "Galway", "Cork"],
-            ["Dublin", "Galway", "Cork"],
-            pd.DataFrame(
-                {
-                    "countyname": ["Dublin", "Galway", "Cork"],
-                }
-            ),
-        ),
-    ],
-)
-def test_filter_by_postcodes(
-    bers, selected_postcodes, counties, expected_output, monkeypatch
-):
-    def _mock_multiselect(*args, **kwargs):
-        return selected_postcodes
-
-    monkeypatch.setattr("app.st.multiselect", _mock_multiselect)
-    output = small_areas._filter_by_substrings(
-        df=bers, column_name="countyname", all_substrings=counties
-    )
-    assert_frame_equal(output, expected_output)
-
-
 def test_load_small_area_bers_raises_error_on_empty_file(datadir, monkeypatch):
     with pytest.raises(ViolationError):
         small_areas._load_small_area_bers(datadir / "empty_zip_archive.zip")

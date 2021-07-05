@@ -7,7 +7,10 @@ import pandas as pd
 import streamlit as st
 
 from ibsg import clean
+from ibsg import filter
 from ibsg import io
+
+from ibsg import DEFAULTS
 
 
 def main(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
@@ -17,7 +20,7 @@ def main(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
 
     with st.form("Apply Filters"):
         ## Filter
-        sa_bers_in_countyname = _filter_by_substrings(
+        sa_bers_in_countyname = filter.filter_by_substrings(
             raw_sa_bers,
             column_name="countyname",
             all_substrings=[
@@ -96,37 +99,11 @@ def main(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
     == 1
 )
 def _load_small_area_bers(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
-    extract_columns = [
-        "small_area",
-        "year_of_construction",
-        "energy_value",
-        "type_of_rating",
-        "living_area_percent",
-        "roof_area",
-        "roof_uvalue",
-        "wall_area",
-        "wall_uvalue",
-        "floor_area",
-        "floor_uvalue",
-        "window_area",
-        "window_uvalue",
-        "door_area",
-        "door_uvalue",
-        "ground_floor_area",
-        "first_floor_area",
-        "second_floor_area",
-        "third_floor_area",
-        "main_sh_boiler_efficiency",
-        "main_hw_boiler_efficiency",
-        "main_sh_boiler_efficiency_adjustment_factor",
-        "main_hw_boiler_efficiency_adjustment_factor",
-        "suppl_sh_boiler_efficiency_adjustment_factor",
-    ]
+    dtype = DEFAULTS["small_areas"]["dtype"]
+    mappings = DEFAULTS["small_areas"]["mappings"]
     zip = ZipFile(zipped_csv_of_bers)
     filename = [f for f in zip.namelist() if "csv" in f][0]
-    return io.read_ber_private(zip.open(filename)).pipe(
-        clean.standardise_ber_private_column_names
-    )[extract_columns]
+    return io.read(zip.open(filename), dtype=dtype, mappings=mappings)
 
 
 @st.cache
@@ -202,12 +179,6 @@ def _clean_small_area_bers(
             condition="main_hw_boiler_efficiency_adjustment_factor > 0.7",
         )
         .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="suppl_sh_boiler_efficiency_adjustment_factor > 19",
-            selected_filters=selected_filters,
-            condition="suppl_sh_boiler_efficiency_adjustment_factor > 19",
-        )
-        .pipe(
             clean.get_rows_equal_to_values,
             filter_name="Is valid small area id",
             selected_filters=selected_filters,
@@ -217,23 +188,3 @@ def _clean_small_area_bers(
     )
     st.write("⚠️Filtering removed" f" {len(bers) - len(clean_bers)}" " buildings!")
     return clean_bers
-
-
-def _filter_by_substrings(
-    df: pd.DataFrame, column_name: str, all_substrings: List[str]
-) -> pd.DataFrame:
-    selected_substrings = st.multiselect(
-        f"Select {column_name}", all_substrings, default=all_substrings
-    )
-    if selected_substrings == all_substrings:
-        selected_df = df
-    else:
-        substrings_to_search = "|".join(selected_substrings)
-        selected_df = df[
-            df[column_name].str.title().str.contains(substrings_to_search, regex=True)
-        ]
-    return selected_df
-
-
-if __name__ == "__main__":
-    main()
