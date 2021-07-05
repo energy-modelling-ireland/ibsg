@@ -15,6 +15,7 @@ setup(
     author_email="rowan.molony@codema.ie",
     url="https://github.com/rdmolony/ibsg",
     packages=["ibsg"],
+    package_data={"ibsg": ["defaults.json"]},
     entry_points={"console_scripts": ["ibsg=ibsg.cli:cli"]},
     install_requires=install_requires,
     extras_require=extras,

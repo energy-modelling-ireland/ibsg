@@ -1,4 +1,5 @@
 icontract
 streamlit
+stqdm
 pandas
 typeguard
