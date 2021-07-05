@@ -236,7 +236,10 @@
             "HSMainSystemEfficiency": "main_sh_boiler_efficiency",
             "WHMainSystemEff": "main_hw_boiler_efficiency",
             "HSEffAdjFactor": "main_sh_boiler_efficiency_adjustment_factor",
-            "WHEffAdjFactor": "main_hw_boiler_efficiency_adjustment_factor"
+            "WHEffAdjFactor": "main_hw_boiler_efficiency_adjustment_factor",
+            "HSSupplHeatFraction": "suppl_sh_heat_fraction",
+            "DeclaredLossFactor": "declared_loss_factor",
+            "ThermalBridgingFactor": "thermal_bridging_factor"
         },
         "dtype": {
             "CountyName": "category",
@@ -262,7 +265,10 @@
             "HSMainSystemEfficiency": "float32",
             "WHMainSystemEff": "float32",
             "HSEffAdjFactor": "float32",
-            "WHEffAdjFactor": "float32"
+            "WHEffAdjFactor": "float32",
+            "HSSupplHeatFraction": "float32",
+            "DeclaredLossFactor": "float32",
+            "ThermalBridgingFactor": "float32"
         }
     }
 }
