@@ -1,5 +1,6 @@
 from io import BytesIO
 from typing import List
+
 from zipfile import ZipFile
 
 import icontract
@@ -7,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from ibsg import clean
+from ibsg.fetch import fetch
 from ibsg import filter
 from ibsg import io
 
@@ -16,7 +18,8 @@ from ibsg import DEFAULTS
 def main(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
     ## Load
     raw_sa_bers = _load_small_area_bers(zipped_csv_of_bers)
-    sa_ids_2016 = _load_small_area_ids()
+    sa_ids_2016 = _load_2016_small_area_ids()
+    sa_stats_2016 = _load_2016_small_area_statistics()
 
     with st.form("Apply Filters"):
         ## Filter
@@ -107,11 +110,22 @@ def _load_small_area_bers(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
 
 
 @st.cache
-def _load_small_area_ids() -> List[str]:
+def _load_2016_small_area_ids() -> List[str]:
+    filepath = fetch(
+        "https://storage.googleapis.com/codema-dev/small_area_ids_2016.csv"
+    )
     return pd.read_csv(
-        "https://storage.googleapis.com/codema-dev/small_area_ids_2016.csv",
+        filepath,
         squeeze=True,
     ).to_list()
+
+
+@st.cache
+def _load_2016_small_area_statistics() -> pd.DataFrame:
+    filepath = fetch(
+        "https://www.cso.ie/en/media/csoie/census/census2016/census2016boundaryfiles/SAPS2016_SA2017.csv"
+    )
+    return pd.read_csv(filepath)
 
 
 def _clean_small_area_bers(
