@@ -10,26 +10,12 @@ from stqdm import stqdm
 import streamlit as st
 
 from ibsg import clean
-from ibsg import DEFAULTS
 from ibsg import filter
-from ibsg import io
-from ibsg import _DATA_DIR
 
 
-def main(email_address: str, data_dir: Path = _DATA_DIR) -> pd.DataFrame:
-    ## Download
-    filepath = data_dir / "BERPublicsearch.zip"
-    if not filepath.exists():
-        st.write(
-            f"Accessing {filepath.name}"
-            " from https://ndber.seai.ie/BERResearchTool/Register/Register.aspx"
-        )
-        request_public_ber_db(
-            email_address=email_address, savedir=data_dir, tqdm_bar=stqdm
-        )
-
-    _check_berpublicsearch_is_zip(email_address, filepath)
-    postcode_bers_raw = _load_postcode_bers(filepath)
+def main() -> pd.DataFrame:
+    ## Fetch
+    postcode_bers_raw = _load_postcode_bers()
 
     with st.form("Apply Filters"):
         ## Filter
@@ -99,35 +85,10 @@ def main(email_address: str, data_dir: Path = _DATA_DIR) -> pd.DataFrame:
     return clean_postcode_bers
 
 
-def _check_berpublicsearch_is_zip(email_address: str, filepath: Path) -> None:
-    try:
-        ZipFile(filepath)
-    except:
-        os.remove(filepath)
-        st.markdown(
-            f"""
-            {email_address} does not have access to the BER Public search dataset,
-            please login to {email_address} and respond to your registration email.
-            Then refresh your browser and try again!
-            """
-        )
-
-
 @st.cache
-@icontract.require(
-    lambda filepath: "BERPublicsearch.txt" in ZipFile(filepath).namelist(),
-    error=lambda filepath: ViolationError(
-        f"BERPublicsearch.txt not found in {filepath}"
-    ),
-)
-def _load_postcode_bers(filepath: Path) -> pd.DataFrame:
-    dtype = DEFAULTS["postcodes"]["dtype"]
-    mappings = DEFAULTS["postcodes"]["mappings"]
-    return io.read(
-        ZipFile(filepath).open("BERPublicsearch.txt"),
-        dtype=dtype,
-        mappings=mappings,
-        sep="\t",
+def _load_postcode_bers() -> pd.DataFrame:
+    return pd.read_parquet(
+        "https://storage.googleapis.com/ibsg/BERPublicsearch.parquet"
     )
 
 

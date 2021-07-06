@@ -2,7 +2,11 @@ from setuptools import setup
 import versioneer
 
 install_requires = open("requirements.txt").read().strip().split("\n")
-extras = {"dev": ["black", "mypy"], "test": ["pytest-cov", "pytest-datadir"]}
+extras = {
+    "cron": ["git+https://github.com/codema-dev/ber-api"],
+    "dev": ["black", "mypy"],
+    "test": ["pytest-cov", "pytest-datadir"],
+}
 extras["all"] = sum(extras.values(), [])
 
 setup(

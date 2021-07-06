@@ -15,9 +15,6 @@ def main():
         """
         Generate a standardised building stock at postcode or small area level.
 
-        - To use the open-access postcode BERs enter your email address below to enable
-        this application to make an authenticated query to the SEAI at:
-        https://ndber.seai.ie/BERResearchTool/Register/Register.aspx
         - To compress your closed-access small area BER dataset to a `zip` file of
         under 200MB or to open the output file `csv.gz` you might need to install
         [7zip](https://www.7-zip.org/)
@@ -29,17 +26,17 @@ def main():
         """
     )
 
+    postcode_bers_selected = st.button("Fetch Postcode BERs")
     small_area_bers_zipfile = st.file_uploader(
-        "Upload Small Area BERs",
+        "Or upload Small Area BERs",
         type="zip",
     )
-    email_address = st.text_input("Enter your email address")
 
     if small_area_bers_zipfile:
         small_area_bers = small_areas.main(small_area_bers_zipfile)
         download_as_csv(small_area_bers, category="small_area")
-    if email_address:
-        postcode_bers = postcodes.main(email_address)
+    if postcode_bers_selected:
+        postcode_bers = postcodes.main()
         download_as_csv(postcode_bers, category="postcode")
 
 
@@ -54,8 +51,9 @@ def _create_csv_download_link(df: pd.DataFrame, filename: str):
     st.markdown(f"[{filepath.name}](downloads/{filepath.name})")
 
 
-def download_as_csv(df, category: str):
-    save_to_csv_selected = st.button("Save to csv.gz?")
+def download_as_csv(df: pd.DataFrame, category: str):
+    # save_to_csv_selected = st.button("Save to csv.gz?")
+    save_to_csv_selected = True
     if save_to_csv_selected:
         _create_csv_download_link(
             df=df,
