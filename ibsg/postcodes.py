@@ -24,7 +24,9 @@ def main(email_address: str, data_dir: Path = _DATA_DIR) -> pd.DataFrame:
             f"Accessing {filepath.name}"
             " from https://ndber.seai.ie/BERResearchTool/Register/Register.aspx"
         )
-        request_public_ber_db(email_address=email_address, tqdm_bar=stqdm)
+        request_public_ber_db(
+            email_address=email_address, savedir=data_dir, tqdm_bar=stqdm
+        )
 
     _check_berpublicsearch_is_zip(email_address, filepath)
     postcode_bers_raw = _load_postcode_bers(filepath)
