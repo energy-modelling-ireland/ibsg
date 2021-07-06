@@ -189,5 +189,5 @@ def _clean_small_area_bers(
     length_before = len(bers)
     length_after = len(clean_bers)
     percentage_change = 100 * (length_before - length_after) / length_before
-    st.write(f"⚠️ Filtering removed {round(percentage_change, 2)}% buildings ⚠️")
+    st.write(f"⚠️ Filtering removed {round(percentage_change, 2)}% of buildings ⚠️")
     return clean_bers
