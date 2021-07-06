@@ -13,11 +13,12 @@ from ibsg import clean
 from ibsg import DEFAULTS
 from ibsg import filter
 from ibsg import io
+from ibsg import _DATA_DIR
 
 
-def main(email_address: str) -> pd.DataFrame:
+def main(email_address: str, data_dir: Path = _DATA_DIR) -> pd.DataFrame:
     ## Download
-    filepath = Path.cwd() / "BERPublicsearch.zip"
+    filepath = data_dir / "BERPublicsearch.zip"
     if not filepath.exists():
         st.write(
             f"Accessing {filepath.name}"
