@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -24,6 +25,7 @@ def main(email_address: str) -> pd.DataFrame:
         )
         request_public_ber_db(email_address=email_address, tqdm_bar=stqdm)
 
+    _check_berpublicsearch_is_zip(email_address, filepath)
     postcode_bers_raw = _load_postcode_bers(filepath)
 
     with st.form("Apply Filters"):
@@ -92,6 +94,20 @@ def main(email_address: str) -> pd.DataFrame:
         st.form_submit_button(label="Re-apply Filters")
 
     return clean_postcode_bers
+
+
+def _check_berpublicsearch_is_zip(email_address: str, filepath: Path) -> None:
+    try:
+        ZipFile(filepath)
+    except:
+        os.remove(filepath)
+        st.markdown(
+            f"""
+            {email_address} does not have access to the BER Public search dataset,
+            please login to {email_address} and respond to your registration email.
+            Then refresh your browser and try again!
+            """
+        )
 
 
 @st.cache
