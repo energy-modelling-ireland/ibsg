@@ -96,10 +96,7 @@ def main(email_address: str) -> pd.DataFrame:
 
 @st.cache
 @icontract.require(
-    lambda filepath: len(
-        [f for f in ZipFile(filepath).namelist() if "BERPublicsearch.txt" in f]
-    )
-    == 1,
+    lambda filepath: "BERPublicsearch.txt" in ZipFile(filepath).namelist(),
     error=lambda filepath: ViolationError(
         f"BERPublicsearch.txt not found in {filepath}"
     ),
@@ -107,9 +104,12 @@ def main(email_address: str) -> pd.DataFrame:
 def _load_postcode_bers(filepath: Path) -> pd.DataFrame:
     dtype = DEFAULTS["postcodes"]["dtype"]
     mappings = DEFAULTS["postcodes"]["mappings"]
-    zip = ZipFile(filepath)
-    filename = [f for f in zip.namelist() if "BERPublicsearch.txt" in f][0]
-    return io.read(zip.open(filename), dtype=dtype, mappings=mappings, sep="\t")
+    return io.read(
+        ZipFile(filepath).open("BERPublicsearch.txt"),
+        dtype=dtype,
+        mappings=mappings,
+        sep="\t",
+    )
 
 
 def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
