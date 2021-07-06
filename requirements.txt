@@ -1,6 +1,6 @@
+dask[dataframe]
 icontract
 streamlit
 stqdm
 pandas
-typeguard
 git+https://github.com/codema-dev/ber-api

@@ -1,10 +1,6 @@
-import datetime
-from pathlib import Path
-from zipfile import ZipFile
-
-import pandas as pd
 import streamlit as st
 
+from ibsg import io
 from ibsg import postcodes
 from ibsg import small_areas
 
@@ -37,30 +33,10 @@ def main():
 
     if small_area_bers_zipfile:
         small_area_bers = small_areas.main(small_area_bers_zipfile)
-        download_as_csv(small_area_bers, category="small_area")
+        io.download_as_csv(small_area_bers, category="small_area", engine="pandas")
     if email_address:
         postcode_bers = postcodes.main(email_address)
-        download_as_csv(postcode_bers, category="postcode")
-
-
-def _create_csv_download_link(df: pd.DataFrame, filename: str):
-    # workaround from streamlit/streamlit#400
-    STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
-    DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
-    if not DOWNLOADS_PATH.is_dir():
-        DOWNLOADS_PATH.mkdir()
-    filepath = (DOWNLOADS_PATH / filename).with_suffix(".csv.gz")
-    df.to_csv(filepath, index=False, compression="gzip")
-    st.markdown(f"[{filepath.name}](downloads/{filepath.name})")
-
-
-def download_as_csv(df, category: str):
-    save_to_csv_selected = st.button("Save to csv.gz?")
-    if save_to_csv_selected:
-        _create_csv_download_link(
-            df=df,
-            filename=f"{category}_bers_{datetime.date.today()}",
-        )
+        io.download_as_csv(postcode_bers, category="postcode", engine="dask")
 
 
 if __name__ == "__main__":

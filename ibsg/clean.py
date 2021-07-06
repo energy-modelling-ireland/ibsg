@@ -1,20 +1,14 @@
-from typing import Any
-from typing import Dict
 from typing import List
-from typing import Optional
+from typing import Union
 
+import dask.dataframe as dd
 import pandas as pd
-from pandas.api.types import is_string_dtype
 import icontract
-from typeguard import typechecked
-
-from ibsg import DEFAULTS
 
 
-@typechecked
 @icontract.ensure(lambda result: len(result) != 0)
 def get_rows_meeting_condition(
-    ber: pd.DataFrame,
+    ber: Union[pd.DataFrame, dd.DataFrame],
     filter_name: str,
     selected_filters: List[str],
     condition: str,
@@ -26,10 +20,9 @@ def get_rows_meeting_condition(
     return filtered_ber
 
 
-@typechecked
 @icontract.ensure(lambda result: len(result) != 0)
 def get_rows_equal_to_values(
-    ber: pd.DataFrame,
+    ber: Union[pd.DataFrame, dd.DataFrame],
     filter_name: str,
     selected_filters: List[str],
     on_column: str,
@@ -37,8 +30,7 @@ def get_rows_equal_to_values(
 ) -> pd.DataFrame:
     if filter_name in selected_filters:
         # values & column must be of same type or query will be empty!
-        ber.loc[:, on_column] = ber[on_column].astype("string")
-        filtered_ber = ber[ber[on_column].isin(values)]
+        filtered_ber = ber[ber[on_column].astype("string").isin(values)]
     else:
         filtered_ber = ber
     return filtered_ber

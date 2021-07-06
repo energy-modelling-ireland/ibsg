@@ -1,7 +1,10 @@
 from pathlib import Path
-from zipfile import ZipFile
+from shutil import unpack_archive
 
 from ber_api import request_public_ber_db
+import dask.dataframe as dd
+from dask.delayed import unzip
+import fsspec
 import icontract
 from icontract import ViolationError
 import pandas as pd
@@ -14,17 +17,24 @@ from ibsg import filter
 from ibsg import io
 
 
-def main(email_address: str) -> pd.DataFrame:
+def main(email_address: str) -> dd.DataFrame:
     ## Download
-    filepath = Path.cwd() / "BERPublicsearch.zip"
-    if not filepath.exists():
+    zipped_filepath = Path.cwd() / "BERPublicsearch.zip"
+    unzipped_filepath = Path.cwd() / "BERPublicsearch.txt"
+    parquet_filepath = Path.cwd() / "BERPublicsearch.parquet"
+    if not parquet_filepath.exists():
         st.write(
-            f"Accessing {filepath.name}"
+            f"Accessing {zipped_filepath.name}"
             " from https://ndber.seai.ie/BERResearchTool/Register/Register.aspx"
         )
+        st.markdown("Unzipping data...")
         request_public_ber_db(email_address=email_address, tqdm_bar=stqdm)
+        unpack_archive(zipped_filepath, extract_dir=Path.cwd())
+        st.markdown("Converting data to `parquet` for faster re-runs...")
+        postcode_bers_raw_txt = _load_postcode_bers(unzipped_filepath)
+        postcode_bers_raw_txt.to_parquet(parquet_filepath)
 
-    postcode_bers_raw = _load_postcode_bers(filepath)
+    postcode_bers_raw = dd.read_parquet(parquet_filepath)
 
     with st.form("Apply Filters"):
         ## Filter
@@ -94,25 +104,13 @@ def main(email_address: str) -> pd.DataFrame:
     return clean_postcode_bers
 
 
-@st.cache
-@icontract.require(
-    lambda filepath: len(
-        [f for f in ZipFile(filepath).namelist() if "BERPublicsearch.txt" in f]
-    )
-    == 1,
-    error=lambda filepath: ViolationError(
-        f"BERPublicsearch.txt not found in {filepath}"
-    ),
-)
-def _load_postcode_bers(filepath: Path) -> pd.DataFrame:
+def _load_postcode_bers(filepath: Path) -> dd.DataFrame:
     dtype = DEFAULTS["postcodes"]["dtype"]
     mappings = DEFAULTS["postcodes"]["mappings"]
-    zip = ZipFile(filepath)
-    filename = [f for f in zip.namelist() if "BERPublicsearch.txt" in f][0]
-    return io.read(zip.open(filename), dtype=dtype, mappings=mappings, sep="\t")
+    return io.read(filepath, dtype=dtype, mappings=mappings, sep="\t", engine="dask")
 
 
-def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
+def _clean_postcode_bers(bers: dd.DataFrame) -> pd.DataFrame:
     filter_names = [
         "Is not provisional",
         "0m² < ground_floor_area < 1000m²",
@@ -194,5 +192,8 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
             condition="thermal_bridging_factor > 0 or thermal_bridging_factor <= 0.15",
         )
     )
-    st.write("⚠️Filtering removed" f" {len(bers) - len(clean_bers)}" " buildings!")
+    length_before = len(bers)
+    length_after = len(clean_bers)
+    percentage_reduction = 100 * (length_before - length_after) / length_before
+    st.write(f"⚠️Filtering removed {round(percentage_reduction, 2)}% of buildings ⚠️")
     return clean_bers
