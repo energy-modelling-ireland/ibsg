@@ -52,8 +52,7 @@ def _create_csv_download_link(df: pd.DataFrame, filename: str):
 
 
 def download_as_csv(df: pd.DataFrame, category: str):
-    # save_to_csv_selected = st.button("Save to csv.gz?")
-    save_to_csv_selected = True
+    save_to_csv_selected = st.button("Save to csv.gz?")
     if save_to_csv_selected:
         _create_csv_download_link(
             df=df,
