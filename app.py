@@ -33,7 +33,6 @@ def main():
 
     if small_area_bers_zipfile:
         small_area_bers = small_areas.main(small_area_bers_zipfile)
-        save_data = st.button("Save as csv.gz?")
         create_csv_download_link(
             small_area_bers, f"small_area_bers_{datetime.date.today()}"
         )
