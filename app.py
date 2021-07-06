@@ -34,14 +34,20 @@ def main():
 
     if small_area_bers_zipfile:
         small_area_bers = small_areas.main(small_area_bers_zipfile)
-        download_as_csv(small_area_bers, category="small_area")
+        save_data = st.button("Save as csv.gz?")
+        create_csv_download_link(
+            small_area_bers, f"small_area_bers_{datetime.date.today()}"
+        )
     if postcode_bers_selected:
         postcode_bers = postcodes.main()
-        download_as_csv(postcode_bers, category="postcode")
+        create_csv_download_link(
+            postcode_bers, f"small_area_bers_{datetime.date.today()}"
+        )
 
 
-def _create_csv_download_link(df: pd.DataFrame, filename: str):
+def create_csv_download_link(df: pd.DataFrame, filename: str):
     # workaround from streamlit/streamlit#400
+    st.markdown("Saving data as a `csv.gz` file...")
     STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
     DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
     if not DOWNLOADS_PATH.is_dir():
@@ -49,15 +55,6 @@ def _create_csv_download_link(df: pd.DataFrame, filename: str):
     filepath = (DOWNLOADS_PATH / filename).with_suffix(".csv.gz")
     df.to_csv(filepath, index=False, compression="gzip")
     st.markdown(f"[{filepath.name}](downloads/{filepath.name})")
-
-
-def download_as_csv(df: pd.DataFrame, category: str):
-    save_to_csv_selected = st.button("Save to csv.gz?")
-    if save_to_csv_selected:
-        _create_csv_download_link(
-            df=df,
-            filename=f"{category}_bers_{datetime.date.today()}",
-        )
 
 
 if __name__ == "__main__":
