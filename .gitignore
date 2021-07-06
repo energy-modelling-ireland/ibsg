@@ -66,5 +66,3 @@ data/*
 !data/.gitkeep
 .vscode/
 gooey_config.json
-BERPublicsearch*
-ReadMe.txt
