@@ -225,5 +225,8 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
             + f" or thermal_bridging_factor <= {thermal_bridging_factor_upper_bound}",
         )
     )
-    st.write("⚠️Filtering removed" f" {len(bers) - len(clean_bers)}" " buildings!")
+    length_before = len(bers)
+    length_after = len(clean_bers)
+    percentage_change = 100 * (length_before - length_after) / length_before
+    st.write(f"⚠️ Filtering removed {round(percentage_change, 2)}% buildings ⚠️")
     return clean_bers
