@@ -4,6 +4,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+import icontract
+import numpy as np
 import pandas as pd
 
 Operations = Dict[str, Union[str, Callable]]
@@ -31,41 +33,44 @@ def _get_aggregation_operations(df):
     return {**numeric_operations, **categorical_operations}
 
 
+@icontract.ensure(lambda result: len(result) > 0)
 def create_archetypes(
     stock: pd.DataFrame,
-    on_columns: List[str],
-    aggregation_operations: Optional[Operations] = None,
+    index_columns: List[str],
+    agg_columns: List[str],
+    archetype_name: str,
     sample_size: int = 30,
 ) -> pd.DataFrame:
     """Create archetypes on stock of significant sample_size.
 
     Args:
         stock (pd.DataFrame): Building Stock DataFrame
-        on_columns (List[str]): Column names to archetype on
-        aggregation_operations (Optional[Operations], optional): Column names mapped to
-            aggregation operations (mode, median, mean). Defaults to None.
+        index_columns (List[str]): Column names to archetype on
+        agg_columns (List[str]): Column to aggregate into archetypes
+        archetype_name (str): Name of archetype
         sample_size (int, optional): Sample size above which archetyping is considered.
             Defaults to 30.
 
     Returns:
         pd.DataFrame: Archetypes DataFrame
     """
-    archetype_group_sizes = stock.groupby(on_columns).size().rename("sample_size")
-    if aggregation_operations:
-        use_columns = on_columns + list(aggregation_operations.keys())
-    else:
-        use_columns = stock.columns
-        agg_columns = list(set(use_columns).difference(on_columns))
-        aggregation_operations = _get_aggregation_operations(stock[agg_columns])
-
+    archetype_group_sizes = stock.groupby(index_columns).size().rename("sample_size")
+    use_columns = index_columns + agg_columns
+    aggregation_operations = _get_aggregation_operations(stock[agg_columns])
     return (
         stock.loc[:, use_columns]
-        .groupby(on_columns)
+        .groupby(index_columns)
         .agg(aggregation_operations)
         .join(archetype_group_sizes)
         .query(f"sample_size > {sample_size}")
         .reset_index()
+        .assign(archetype=archetype_name)
     )
+
+
+def flag_known_buildings(stock: pd.DataFrame, on_column: str) -> pd.DataFrame:
+    stock["archetype"] = stock[on_column].notnull().map({True: "none", False: np.nan})
+    return stock
 
 
 def fillna_with_archetypes(

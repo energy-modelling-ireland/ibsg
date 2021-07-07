@@ -83,11 +83,42 @@ def test_create_archetypes():
                 "Electricity                   ",
             ],
             "sample_size": [5, 2, 2],
+            "archetype": 3 * ["dwelling_type"],
         }
     )
     output = archetype.create_archetypes(
-        stock=stock, on_columns=["dwelling_type"], sample_size=1
+        stock=stock,
+        index_columns=["dwelling_type"],
+        agg_columns=["wall_uvalue", "main_sh_boiler_fuel"],
+        archetype_name="dwelling_type",
+        sample_size=1,
     )
+    assert_frame_equal(output, expected_output)
+
+
+def test_flag_known_buildings():
+    stock = pd.DataFrame(
+        {
+            "dwelling_type": [
+                "Detached house",
+                "End of terrace house",
+                "Ground-floor apartment",
+            ],
+            "wall_uvalue": [1.77, 0.485, np.nan],
+        }
+    )
+    expected_output = pd.DataFrame(
+        {
+            "dwelling_type": [
+                "Detached house",
+                "End of terrace house",
+                "Ground-floor apartment",
+            ],
+            "wall_uvalue": [1.77, 0.485, np.nan],
+            "archetype": ["none", "none", np.nan],
+        }
+    )
+    output = archetype.flag_known_buildings(stock=stock, on_column="wall_uvalue")
     assert_frame_equal(output, expected_output)
 
 
@@ -130,6 +161,7 @@ def test_fillna_with_archetypes():
                 "Electricity                   ",
                 "Mains Gas                     ",
             ],
+            "archetype": [np.nan] + 9 * ["none"],
         }
     )
     archetypes = pd.DataFrame(
@@ -146,6 +178,7 @@ def test_fillna_with_archetypes():
                 "Electricity                   ",
             ],
             "sample_size": [5, 2, 2],
+            "archetype": 3 * ["dwelling_type"],
         }
     )
     # pd.DataFrame.combine_first() sorts index values by default
@@ -164,6 +197,7 @@ def test_fillna_with_archetypes():
                 "Ground-floor apartment",
                 "Mid-terrace house",
             ],
+            "archetype": ["dwelling_type"] + 9 * ["none"],
             "main_sh_boiler_fuel": [
                 "Heating Oil                   ",
                 "Heating Oil                   ",
