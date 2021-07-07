@@ -43,8 +43,11 @@ def _melt_statistics_to_individual_buildings(
     Returns:
         pd.DataFrame: individual buildings
     """
+    columns_to_extract = [
+        x for x in sa_stats_raw.columns if re.match(r"T6_2_.*H", x) or x == "GEOGID"
+    ]
     return (
-        sa_stats_raw.loc[:, lambda x: re.match(r"T6_2_.*H", x) or x == "GEOGID"]
+        sa_stats_raw.loc[:, columns_to_extract]
         .assign(small_area=lambda df: df["GEOGID"].str[7:])
         .drop(columns="GEOGID")
         .set_index("small_area")
