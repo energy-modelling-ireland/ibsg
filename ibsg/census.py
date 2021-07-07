@@ -1,14 +1,36 @@
+from configparser import ConfigParser
 import re
+from typing import Optional
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
 from ibsg import clean
+from ibsg import CONFIG
 from ibsg.fetch import fetch
 from ibsg import _LOCAL
 from ibsg import _DATA_DIR
 
 
+def main(
+    bers: pd.DataFrame, census_is_selected: bool, config: ConfigParser = CONFIG
+) -> Optional[pd.DataFrame]:
+    if census_is_selected:
+        with st.spinner("Filling the 2016 census building stock with BERs..."):
+            census_building_ages = _load_census_2016_stock(
+                url=config["urls"]["small_area_statistics_2016"]
+            )
+            small_area_bers = _add_merge_columns_to_bers(bers)
+            stock = _fill_stock_with_small_area_bers(
+                stock=census_building_ages, bers=small_area_bers
+            )
+    else:
+        stock = bers
+    return stock, census_is_selected
+
+
+@st.cache
 def _load_2016_small_area_statistics(url: str) -> pd.DataFrame:
     filepath = fetch(
         url,
@@ -64,8 +86,50 @@ def _add_merge_columns_to_census_stock(stock: pd.DataFrame) -> pd.DataFrame:
     return stock
 
 
-@st.cache
-def load_census_2016_stock(url: str) -> pd.DataFrame:
+def _load_census_2016_stock(url: str) -> pd.DataFrame:
     census_sa_stats = _load_2016_small_area_statistics(url)
     individual_buildings = _melt_statistics_to_individual_buildings(census_sa_stats)
     return _add_merge_columns_to_census_stock(individual_buildings)
+
+
+def _add_merge_columns_to_bers(bers: pd.DataFrame) -> pd.DataFrame:
+    bers["period_built"] = pd.cut(
+        bers["year_of_construction"],
+        bins=[
+            -np.inf,
+            1919,
+            1945,
+            1960,
+            1970,
+            1980,
+            1990,
+            2000,
+            2011,
+            np.inf,
+        ],
+        labels=[
+            "PRE19",
+            "19_45",
+            "46_60",
+            "61_70",
+            "71_80",
+            "81_90",
+            "91_00",
+            "01_10",
+            "11L",
+        ],
+    )
+    bers["id"] = clean.get_group_id(bers, columns=["small_area", "period_built"])
+    return bers
+
+
+def _fill_stock_with_small_area_bers(
+    stock: pd.DataFrame, bers: pd.DataFrame
+) -> pd.DataFrame:
+    before_2016 = stock.merge(
+        bers.query("year_of_construction < 2016"),
+        on=["small_area", "period_built", "id"],
+        how="left",
+    )
+    after_2016 = bers.query("year_of_construction >= 2016")
+    return pd.concat([before_2016, after_2016])

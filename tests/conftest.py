@@ -17,6 +17,8 @@ def config(shared_datadir) -> ConfigParser:
     config["urls"]["small_area_statistics_2016"] = str(
         shared_datadir / "SAPS2016_SA2017.csv"
     )
+    config["settings"] = {}
+    config["settings"]["sample_size"] = "1"
     return config
 
 
