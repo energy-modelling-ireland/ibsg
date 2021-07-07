@@ -2,14 +2,11 @@ from pathlib import Path
 from typing import Union
 from urllib.request import urlretrieve
 
-from ibsg import _LOCAL
-from ibsg import _DATA_DIR
 
-
-def fetch(url: str) -> Union[str, Path]:
-    if _LOCAL:
+def fetch(url: str, local: bool, data_dir: Path) -> Union[str, Path]:
+    if local:
         filename = url.split("/")[-1]
-        filepath = _DATA_DIR / filename
+        filepath = data_dir / filename
         if not filepath.exists():
             urlretrieve(url, filepath)
     else:
