@@ -36,18 +36,18 @@ def _get_aggregation_operations(df):
 @icontract.ensure(lambda result: len(result) > 0)
 def create_archetypes(
     stock: pd.DataFrame,
-    index_columns: List[str],
-    agg_columns: List[str],
     archetype_name: str,
+    index_columns: List[str],
+    exclude_columns: List[str] = [],
     sample_size: int = 30,
 ) -> pd.DataFrame:
     """Create archetypes on stock of significant sample_size.
 
     Args:
         stock (pd.DataFrame): Building Stock DataFrame
-        index_columns (List[str]): Column names to archetype on
-        agg_columns (List[str]): Column to aggregate into archetypes
         archetype_name (str): Name of archetype
+        index_columns (List[str]): Column names to archetype on
+        exclude_columns (List[str]): Column to ignore during aggregation
         sample_size (int, optional): Sample size above which archetyping is considered.
             Defaults to 30.
 
@@ -55,7 +55,8 @@ def create_archetypes(
         pd.DataFrame: Archetypes DataFrame
     """
     archetype_group_sizes = stock.groupby(index_columns).size().rename("sample_size")
-    use_columns = index_columns + agg_columns
+    use_columns = set(stock.columns).difference(set(exclude_columns))
+    agg_columns = set(use_columns).difference(set(index_columns))
     aggregation_operations = _get_aggregation_operations(stock[agg_columns])
     return (
         stock.loc[:, use_columns]

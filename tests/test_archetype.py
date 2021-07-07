@@ -31,6 +31,7 @@ def test_get_aggregation_operations():
 def test_create_archetypes():
     stock = pd.DataFrame(
         {
+            "countyname": 10 * ["Co. Dublin"],
             "dwelling_type": [
                 "Detached house",
                 "Mid-terrace house",
@@ -88,9 +89,9 @@ def test_create_archetypes():
     )
     output = archetype.create_archetypes(
         stock=stock,
-        index_columns=["dwelling_type"],
-        agg_columns=["wall_uvalue", "main_sh_boiler_fuel"],
         archetype_name="dwelling_type",
+        index_columns=["dwelling_type"],
+        exclude_columns=["countyname"],
         sample_size=1,
     )
     assert_frame_equal(output, expected_output)
