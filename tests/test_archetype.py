@@ -87,7 +87,7 @@ def test_create_archetypes():
             "archetype": 3 * ["dwelling_type"],
         }
     )
-    output = archetype.create_archetypes(
+    output = archetype._create_archetypes(
         stock=stock,
         archetype_name="dwelling_type",
         index_columns=["dwelling_type"],
@@ -119,7 +119,7 @@ def test_flag_known_buildings():
             "archetype": ["none", "none", np.nan],
         }
     )
-    output = archetype.flag_known_buildings(stock=stock, on_column="wall_uvalue")
+    output = archetype._flag_known_buildings(stock=stock, on_column="wall_uvalue")
     assert_frame_equal(output, expected_output)
 
 
@@ -215,7 +215,7 @@ def test_fillna_with_archetypes():
             "wall_uvalue": [1.77, 1.77, 0.28, 0.3, 2.0, 0.6, 0.37, 0.5, 0.94, 2.09],
         }
     )
-    output = archetype.fillna_with_archetypes(
+    output = archetype._fillna_with_archetypes(
         stock=stock, archetypes=archetypes, archetype_columns=["dwelling_type"]
     )
     assert_frame_equal(output, expected_output, check_like=True)
