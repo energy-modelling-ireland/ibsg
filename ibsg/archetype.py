@@ -66,3 +66,13 @@ def create_archetypes(
         .query(f"sample_size > {sample_size}")
         .reset_index()
     )
+
+
+def fillna_with_archetypes(
+    stock: pd.DataFrame, archetypes: pd.DataFrame, archetype_columns: List[str]
+) -> pd.DataFrame:
+    return (
+        stock.set_index(archetype_columns)
+        .combine_first(archetypes.set_index(archetype_columns))
+        .reset_index()
+    )
