@@ -6,9 +6,9 @@ import pytest
 from ibsg import small_areas
 
 
-def test_load_small_area_bers_raises_error_on_empty_file(datadir, monkeypatch):
+def test_load_small_area_bers_raises_error_on_empty_file(shared_datadir):
     with pytest.raises(ViolationError):
-        small_areas._load_small_area_bers(datadir / "empty_zip_archive.zip")
+        small_areas._load_small_area_bers(shared_datadir / "empty_zip_archive.zip")
 
 
 @pytest.mark.parametrize(
@@ -18,11 +18,5 @@ def test_load_small_area_bers_raises_error_on_empty_file(datadir, monkeypatch):
         "anonymised_small_area_ber_sample.csv.zip",
     ],
 )
-def test_main(filename, datadir, shared_datadir):
-    config = ConfigParser()
-    config["urls"] = {}
-    config["urls"]["small_area_ids_2016"] = str(datadir / "small_area_ids_2016.csv")
-    config["urls"]["small_area_statistics_2016"] = str(
-        shared_datadir / "SAPS2016_SA2017.csv"
-    )
-    small_areas.main(datadir / filename, config=config)
+def test_main_on_nested_zip_files(filename, shared_datadir, config):
+    small_areas.main(shared_datadir / filename, config=config)

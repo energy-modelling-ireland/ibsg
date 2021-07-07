@@ -99,12 +99,12 @@ def main(zipped_csv_of_bers: BytesIO, config: ConfigParser = CONFIG) -> pd.DataF
         ## Submit
         st.form_submit_button(label="Re-apply Filters")
 
-    building_stock = census_stock.merge(
-        _add_census_columns_to_bers(filtered_small_area_bers),
-        on=["small_area", "period_built", "id"],
-        how="left",
+    st.markdown("Filling Building Stock as of the 2016 Census with BERs...")
+    small_area_bers = _add_merge_columns_to_bers(filtered_small_area_bers)
+    census_stock_bers = _fill_stock_with_small_area_bers(
+        stock=census_stock, bers=small_area_bers
     )
-    return building_stock
+    return census_stock_bers
 
 
 @st.cache
@@ -214,7 +214,7 @@ def _filter_small_area_bers(
     return clean_bers
 
 
-def _add_census_columns_to_bers(bers: pd.DataFrame) -> pd.DataFrame:
+def _add_merge_columns_to_bers(bers: pd.DataFrame) -> pd.DataFrame:
     bers["period_built"] = pd.cut(
         bers["year_of_construction"],
         bins=[
@@ -243,3 +243,15 @@ def _add_census_columns_to_bers(bers: pd.DataFrame) -> pd.DataFrame:
     )
     bers["id"] = clean.get_group_id(bers, columns=["small_area", "period_built"])
     return bers
+
+
+def _fill_stock_with_small_area_bers(
+    stock: pd.DataFrame, bers: pd.DataFrame
+) -> pd.DataFrame:
+    before_2016 = stock.merge(
+        bers.query("year_of_construction < 2016"),
+        on=["small_area", "period_built", "id"],
+        how="left",
+    )
+    after_2016 = bers.query("year_of_construction >= 2016")
+    return pd.concat([before_2016, after_2016])

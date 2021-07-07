@@ -59,11 +59,13 @@ def _melt_statistics_to_individual_buildings(
     )
 
 
+def _add_merge_columns_to_census_stock(stock: pd.DataFrame) -> pd.DataFrame:
+    stock["id"] = clean.get_group_id(stock, columns=["small_area", "period_built"])
+    return stock
+
+
 @st.cache
 def load_census_2016_stock(url: str) -> pd.DataFrame:
     census_sa_stats = _load_2016_small_area_statistics(url)
     individual_buildings = _melt_statistics_to_individual_buildings(census_sa_stats)
-    individual_buildings["id"] = clean.get_group_id(
-        individual_buildings, columns=["small_area", "period_built"]
-    )
-    return individual_buildings
+    return _add_merge_columns_to_census_stock(individual_buildings)
