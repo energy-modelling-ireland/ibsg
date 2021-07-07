@@ -1,10 +1,6 @@
-from typing import List
-from zipfile import ZipFile
+from configparser import ConfigParser
 
 from icontract import ViolationError
-import pandas as pd
-from pandas.core.frame import DataFrame
-from pandas.testing import assert_frame_equal
 import pytest
 
 from ibsg import small_areas
@@ -22,11 +18,11 @@ def test_load_small_area_bers_raises_error_on_empty_file(datadir, monkeypatch):
         "anonymised_small_area_ber_sample.csv.zip",
     ],
 )
-def test_main(filename, datadir, monkeypatch):
-    def _mock_load_small_area_ids(*args, **kwargs) -> List[str]:
-        return pd.read_csv(datadir / "small_area_ids_2016.csv", squeeze=True).to_list()
-
-    monkeypatch.setattr(
-        "ibsg.small_areas._load_small_area_ids", _mock_load_small_area_ids
+def test_main(filename, datadir, shared_datadir):
+    config = ConfigParser()
+    config["urls"] = {}
+    config["urls"]["small_area_ids_2016"] = str(datadir / "small_area_ids_2016.csv")
+    config["urls"]["small_area_statistics_2016"] = str(
+        shared_datadir / "SAPS2016_SA2017.csv"
     )
-    small_areas.main(datadir / filename)
+    small_areas.main(datadir / filename, config=config)

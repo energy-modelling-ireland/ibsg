@@ -1,7 +1,9 @@
-from dotenv import load_dotenv
+from configparser import ConfigParser
 from json import load
 from os import getenv
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 from ._version import get_versions
 
@@ -16,3 +18,6 @@ _LOCAL = bool(getenv("LOCAL"))
 
 with open(_SRC_DIR / "defaults.json") as f:
     DEFAULTS = load(f)
+
+CONFIG = ConfigParser()
+CONFIG.read(_SRC_DIR / "config.ini")
