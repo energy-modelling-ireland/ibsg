@@ -1,22 +1,33 @@
+from configparser import ConfigParser
 from io import BytesIO
 from typing import List
+
 from zipfile import ZipFile
 
 import icontract
+import numpy as np
 import pandas as pd
 import streamlit as st
 
+from ibsg import census
 from ibsg import clean
+from ibsg.fetch import fetch
 from ibsg import filter
 from ibsg import io
+from ibsg import _LOCAL
+from ibsg import _DATA_DIR
 
 from ibsg import DEFAULTS
+from ibsg import CONFIG
 
 
-def main(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
+def main(zipped_csv_of_bers: BytesIO, config: ConfigParser = CONFIG) -> pd.DataFrame:
     ## Load
     raw_sa_bers = _load_small_area_bers(zipped_csv_of_bers)
-    sa_ids_2016 = _load_small_area_ids()
+    sa_ids_2016 = _load_2016_small_area_ids(url=config["urls"]["small_area_ids_2016"])
+    census_stock = census.load_census_2016_stock(
+        url=config["urls"]["small_area_statistics_2016"]
+    )
 
     with st.form("Apply Filters"):
         ## Filter
@@ -80,7 +91,7 @@ def main(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
         )
 
         ## Clean
-        clean_small_area_bers = _clean_small_area_bers(
+        filtered_small_area_bers = _filter_small_area_bers(
             bers=sa_bers_in_countyname,
             small_area_ids=sa_ids_2016,
         )
@@ -88,7 +99,12 @@ def main(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
         ## Submit
         st.form_submit_button(label="Re-apply Filters")
 
-    return clean_small_area_bers
+    st.markdown("Filling Building Stock as of the 2016 Census with BERs...")
+    small_area_bers = _add_merge_columns_to_bers(filtered_small_area_bers)
+    census_stock_bers = _fill_stock_with_small_area_bers(
+        stock=census_stock, bers=small_area_bers
+    )
+    return census_stock_bers
 
 
 @st.cache
@@ -107,14 +123,19 @@ def _load_small_area_bers(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
 
 
 @st.cache
-def _load_small_area_ids() -> List[str]:
+def _load_2016_small_area_ids(url: str) -> List[str]:
+    filepath = fetch(
+        url,
+        _LOCAL,
+        _DATA_DIR,
+    )
     return pd.read_csv(
-        "https://storage.googleapis.com/codema-dev/small_area_ids_2016.csv",
+        filepath,
         squeeze=True,
     ).to_list()
 
 
-def _clean_small_area_bers(
+def _filter_small_area_bers(
     bers: pd.DataFrame,
     small_area_ids: List[str],
 ) -> pd.DataFrame:
@@ -191,3 +212,46 @@ def _clean_small_area_bers(
     percentage_change = 100 * (length_before - length_after) / length_before
     st.write(f"⚠️ Filtering removed {round(percentage_change, 2)}% of buildings ⚠️")
     return clean_bers
+
+
+def _add_merge_columns_to_bers(bers: pd.DataFrame) -> pd.DataFrame:
+    bers["period_built"] = pd.cut(
+        bers["year_of_construction"],
+        bins=[
+            -np.inf,
+            1919,
+            1945,
+            1960,
+            1970,
+            1980,
+            1990,
+            2000,
+            2011,
+            np.inf,
+        ],
+        labels=[
+            "PRE19",
+            "19_45",
+            "46_60",
+            "61_70",
+            "71_80",
+            "81_90",
+            "91_00",
+            "01_10",
+            "11L",
+        ],
+    )
+    bers["id"] = clean.get_group_id(bers, columns=["small_area", "period_built"])
+    return bers
+
+
+def _fill_stock_with_small_area_bers(
+    stock: pd.DataFrame, bers: pd.DataFrame
+) -> pd.DataFrame:
+    before_2016 = stock.merge(
+        bers.query("year_of_construction < 2016"),
+        on=["small_area", "period_built", "id"],
+        how="left",
+    )
+    after_2016 = bers.query("year_of_construction >= 2016")
+    return pd.concat([before_2016, after_2016])

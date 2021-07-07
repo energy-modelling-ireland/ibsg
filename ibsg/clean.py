@@ -42,3 +42,7 @@ def get_rows_equal_to_values(
     else:
         filtered_ber = ber
     return filtered_ber
+
+
+def get_group_id(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
+    return df.groupby(columns).cumcount().apply(lambda x: x + 1)

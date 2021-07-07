@@ -39,7 +39,7 @@ def main():
     if postcode_bers_selected:
         postcode_bers = postcodes.main()
         create_csv_download_link(
-            postcode_bers, f"small_area_bers_{datetime.date.today()}"
+            postcode_bers, f"postcode_bers_{datetime.date.today()}"
         )
 
 
