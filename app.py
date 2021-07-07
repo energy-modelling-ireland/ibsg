@@ -4,30 +4,35 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from ibsg import DEFAULTS
 from ibsg import postcodes
 from ibsg import small_areas
 
 
 def main():
-    st.header("🏠 Irish Building Stock Generator 🏠")
     st.markdown(
         """
-        Generate a standardised building stock at postcode or small area level.
+        # 🏠 Irish Building Stock Generator 🏠
+        
+        Generate a standardised building stock at postcode **or** small area level.
 
-        - To compress your closed-access small area BER dataset to a `zip` file of
-        under 200MB or to open the output file `csv.gz` you might need to install
-        [7zip](https://www.7-zip.org/)
+        - Select `Fetch Postcode BERs` (i.e.  [`BER Public`](https://ndber.seai.ie/BERResearchTool/Register/Register.aspx))
+            
+        - **Or** upload a `zip` file containing a `csv` of Small Area BERs (`closed-access`)
 
-       
+        ---
+
         If you have any problems or questions:
+
         - Chat with us on [Gitter](https://gitter.im/energy-modelling-ireland/ibsg)
         - Or raise an issue on our [Github](https://github.com/energy-modelling-ireland/ibsg) 
         """
     )
 
-    postcode_bers_selected = st.button("Fetch Postcode BERs")
-    small_area_bers_zipfile = st.file_uploader(
-        "Or upload Small Area BERs",
+    c1, c2 = st.beta_columns(2)
+    postcode_bers_selected = c1.button("Fetch Postcode BERs")
+    small_area_bers_zipfile = c2.file_uploader(
+        "Upload Small Area BERs",
         type="zip",
     )
 
