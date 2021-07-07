@@ -28,6 +28,19 @@ def main():
         - Or raise an issue on our [Github](https://github.com/energy-modelling-ireland/ibsg) 
         """
     )
+    with st.beta_expander("Hints"):
+        st.markdown(
+            f"""
+        - You might need to install [7zip](https://www.7-zip.org/) for:
+            - Compressing your closed-access small area BER dataset to a `zip` file of
+            under 200MB
+            - Open the `csv.gz` files 
+        - `ibsg` won't be able to read your zipped Small Area BERs `csv` file if the
+        column names don't match:
+
+        `{list(DEFAULTS['small_areas']['mappings'].keys())}`
+        """
+        )
 
     c1, c2 = st.beta_columns(2)
     postcode_bers_selected = c1.button("Fetch Postcode BERs")
