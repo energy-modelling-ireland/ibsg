@@ -9,23 +9,23 @@ from ibsg import _LOCAL
 from ibsg import _DATA_DIR
 
 
-def _load_2016_small_area_statistics() -> pd.DataFrame:
+def _load_2016_small_area_statistics(url: str) -> pd.DataFrame:
     filepath = fetch(
-        "https://www.cso.ie/en/media/csoie/census/census2016/census2016boundaryfiles/SAPS2016_SA2017.csv",
+        url,
         _LOCAL,
         _DATA_DIR,
     )
     # extract only columns related to period of construction
-    return pd.read_csv(
-        filepath, usecols=lambda x: re.match(r"T6_2_.*H", x) or x == "GEOGID"
-    )
+    return pd.read_csv(filepath)
 
 
 def _repeat_rows_on_column(df, on):
     return df.reindex(df.index.repeat(df[on])).drop(columns=on)
 
 
-def _melt_census_to_indiv_building_level(sa_stats_raw: pd.DataFrame) -> pd.DataFrame:
+def _melt_statistics_to_individual_buildings(
+    sa_stats_raw: pd.DataFrame,
+) -> pd.DataFrame:
     """Wrangle the stock to individual building level.
 
     Before:
@@ -44,7 +44,8 @@ def _melt_census_to_indiv_building_level(sa_stats_raw: pd.DataFrame) -> pd.DataF
         pd.DataFrame: individual buildings
     """
     return (
-        sa_stats_raw.assign(small_area=lambda df: df["GEOGID"].str[7:])
+        sa_stats_raw.loc[:, lambda x: re.match(r"T6_2_.*H", x) or x == "GEOGID"]
+        .assign(small_area=lambda df: df["GEOGID"].str[7:])
         .drop(columns="GEOGID")
         .set_index("small_area")
         .rename(columns=lambda x: re.findall(f"T6_2_(.*)H", x)[0])
@@ -56,9 +57,9 @@ def _melt_census_to_indiv_building_level(sa_stats_raw: pd.DataFrame) -> pd.DataF
 
 
 @st.cache
-def load_census_2016_stock() -> pd.DataFrame:
-    census_sa_stats = _load_2016_small_area_statistics()
-    individual_buildings = _melt_census_to_indiv_building_level(census_sa_stats)
+def load_census_2016_stock(url: str) -> pd.DataFrame:
+    census_sa_stats = _load_2016_small_area_statistics(url)
+    individual_buildings = _melt_statistics_to_individual_buildings(census_sa_stats)
     individual_buildings["id"] = clean.get_group_id(
         individual_buildings, columns=["small_area", "period_built"]
     )
