@@ -37,8 +37,7 @@ def get_rows_equal_to_values(
 ) -> pd.DataFrame:
     if filter_name in selected_filters:
         # values & column must be of same type or query will be empty!
-        ber.loc[:, on_column] = ber[on_column].astype("string")
-        filtered_ber = ber[ber[on_column].isin(values)]
+        filtered_ber = ber[ber[on_column].astype("string").isin(values)]
     else:
         filtered_ber = ber
     return filtered_ber
