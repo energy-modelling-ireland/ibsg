@@ -33,8 +33,10 @@ def main():
     with st.beta_expander("Hints"):
         st.markdown(
             f"""
-        - You might need to install [7zip](https://www.7-zip.org/) to compress your
-        closed-access small area BER dataset to a `zip` file under 200MB
+        - You might need to install [7zip](https://www.7-zip.org/) to:
+            - Read `gz` files
+            - Compress your closed-access small area BER dataset to a `zip` file to
+            under 200MB
         - `ibsg` won't be able to read your zipped Small Area BERs `csv` file if the
         column names don't match:
 
@@ -65,7 +67,7 @@ def main():
         create_csv_download_link(
             archetyped_bers,
             filename=f"small_area_bers_{datetime.date.today()}",
-            suffix=".csv.zip",
+            suffix=".csv.gz",
         )
         if archetypes:
             for name, data in archetypes.items():
@@ -81,7 +83,7 @@ def main():
         create_csv_download_link(
             postcode_bers,
             filename=f"postcode_bers_{datetime.date.today()}",
-            suffix=".csv.zip",
+            suffix=".csv.gz",
         )
 
 
