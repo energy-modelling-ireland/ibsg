@@ -9,6 +9,7 @@ from typing import Union
 import icontract
 import numpy as np
 import pandas as pd
+from scipy import stats
 import streamlit as st
 
 from ibsg import CONFIG
@@ -75,10 +76,14 @@ def main(
     return archetyped_bers, archetypes
 
 
+def _get_mode_or_first_occurence(srs: pd.Series) -> str:
+    return stats.mode(srs)[0][0]
+
+
 def _get_aggregation_operations(df):
     numeric_operations = {c: "median" for c in df.select_dtypes("number").columns}
     categorical_operations = {
-        c: pd.Series.mode
+        c: _get_mode_or_first_occurence
         for c in set(
             df.select_dtypes("object").columns.tolist()
             + df.select_dtypes("string").columns.tolist()

@@ -1,8 +1,21 @@
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
+import pytest
 
 from ibsg import archetype
+
+
+@pytest.mark.parametrize(
+    "s,expected_output",
+    [
+        (pd.Series(["a", "a", "b", "b"]), "a"),
+        (pd.Series(["a", "a", "b", np.nan]), "a"),
+    ],
+)
+def test_get_mode_or_first_occurence(s, expected_output):
+    output = archetype._get_mode_or_first_occurence(s)
+    assert output == expected_output
 
 
 def test_get_aggregation_operations():
@@ -16,9 +29,9 @@ def test_get_aggregation_operations():
         }
     )
     expected_output = {
-        "cat": pd.Series.mode,
-        "str": pd.Series.mode,
-        "obj": pd.Series.mode,
+        "cat": archetype._get_mode_or_first_occurence,
+        "str": archetype._get_mode_or_first_occurence,
+        "obj": archetype._get_mode_or_first_occurence,
         "int": "median",
         "float": "median",
     }
@@ -80,8 +93,8 @@ def test_create_archetypes():
             "wall_uvalue": [1.77, 0.485, 0.72],
             "main_sh_boiler_fuel": [
                 "Heating Oil                   ",
-                ["Heating Oil                   ", "Mains Gas                     "],
-                ["Electricity                   ", "Mains Gas                     "],
+                "Heating Oil                   ",
+                "Electricity                   ",
             ],
             "sample_size": [5, 2, 2],
             "archetype": 3 * ["dwelling_type"],
