@@ -9,7 +9,6 @@ from typing import Union
 import icontract
 import numpy as np
 import pandas as pd
-from scipy import stats
 import streamlit as st
 
 from ibsg import CONFIG
@@ -77,7 +76,8 @@ def main(
 
 
 def _get_mode_or_first_occurence(srs: pd.Series) -> str:
-    return stats.mode(srs)[0][0]
+    m = pd.Series.mode(srs)
+    return m.values[0] if not m.empty else np.nan
 
 
 def _get_aggregation_operations(df):
