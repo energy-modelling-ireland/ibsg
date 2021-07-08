@@ -16,9 +16,9 @@ def test_get_aggregation_operations():
         }
     )
     expected_output = {
-        "cat": archetype._get_mode_or_first_occurence,
-        "str": archetype._get_mode_or_first_occurence,
-        "obj": archetype._get_mode_or_first_occurence,
+        "cat": pd.Series.mode,
+        "str": pd.Series.mode,
+        "obj": pd.Series.mode,
         "int": "median",
         "float": "median",
     }
@@ -80,8 +80,8 @@ def test_create_archetypes():
             "wall_uvalue": [1.77, 0.485, 0.72],
             "main_sh_boiler_fuel": [
                 "Heating Oil                   ",
-                "Heating Oil                   ",
-                "Electricity                   ",
+                ["Heating Oil                   ", "Mains Gas                     "],
+                ["Electricity                   ", "Mains Gas                     "],
             ],
             "sample_size": [5, 2, 2],
             "archetype": 3 * ["dwelling_type"],

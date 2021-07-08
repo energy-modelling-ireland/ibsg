@@ -75,19 +75,10 @@ def main(
     return archetyped_bers, archetypes
 
 
-def _get_mode_or_first_occurence(s: pd.Series) -> str:
-    mode = s.mode()
-    if len(mode) > 1:
-        most_common = mode[0]
-    else:
-        most_common = mode
-    return most_common
-
-
 def _get_aggregation_operations(df):
     numeric_operations = {c: "median" for c in df.select_dtypes("number").columns}
     categorical_operations = {
-        c: _get_mode_or_first_occurence
+        c: pd.Series.mode
         for c in set(
             df.select_dtypes("object").columns.tolist()
             + df.select_dtypes("string").columns.tolist()
