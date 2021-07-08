@@ -1,35 +1,44 @@
-from typing import Any
-from typing import Dict
 from typing import List
-from typing import Optional
 
 import pandas as pd
-from pandas.api.types import is_string_dtype
 import icontract
+import streamlit as st
 from typeguard import typechecked
 
-from ibsg import DEFAULTS
+
+def log_percentage_lost(f):
+    def inner(df: pd.DataFrame, filter_name: str, *args, **kwargs):
+        result = f(df, filter_name, *args, **kwargs)
+        len_before = len(df)
+        len_after = len(result)
+        percentage_lost = 100 * (len_before - len_after) / len_before
+        st.info(f"{round(percentage_lost, 2)}% removed by '{filter_name}'")
+        return f(df, filter_name, *args, **kwargs)
+
+    return inner
 
 
 @typechecked
+@log_percentage_lost
 @icontract.ensure(lambda result: len(result) != 0)
 def get_rows_meeting_condition(
-    ber: pd.DataFrame,
+    df: pd.DataFrame,
     filter_name: str,
     selected_filters: List[str],
     condition: str,
 ) -> pd.DataFrame:
     if filter_name in selected_filters:
-        filtered_ber = ber.query(condition)
+        filtered_df = df.query(condition)
     else:
-        filtered_ber = ber
-    return filtered_ber
+        filtered_df = df
+    return filtered_df
 
 
 @typechecked
+@log_percentage_lost
 @icontract.ensure(lambda result: len(result) != 0)
 def get_rows_equal_to_values(
-    ber: pd.DataFrame,
+    df: pd.DataFrame,
     filter_name: str,
     selected_filters: List[str],
     on_column: str,
@@ -37,10 +46,10 @@ def get_rows_equal_to_values(
 ) -> pd.DataFrame:
     if filter_name in selected_filters:
         # values & column must be of same type or query will be empty!
-        filtered_ber = ber[ber[on_column].astype("string").isin(values)]
+        filtered_df = df[df[on_column].astype("string").isin(values)]
     else:
-        filtered_ber = ber
-    return filtered_ber
+        filtered_df = df
+    return filtered_df
 
 
 def get_group_id(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:

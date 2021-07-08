@@ -1,5 +1,6 @@
+from collections import defaultdict
 from configparser import ConfigParser
-from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 import streamlit as st
@@ -111,6 +112,57 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
 
     with st.beta_expander("Change Filter Bounds?"):
         c1, c2 = st.beta_columns(2)
+        selections: Dict[str, Dict[str, str]] = defaultdict()
+        selections = {
+            "ground_floor_area": {
+                "lb": c1.number_input("Lower Bound: ground_floor_area", value=0),
+                "ub": c2.number_input("Upper Bound: ground_floor_area", value=1000),
+            },
+            "living_area_percent": {
+                "lb": c1.number_input("Lower Bound: living_area_percent", value=5),
+                "ub": c2.number_input("Lower Bound: living_area_percent", value=90),
+            },
+            "main_sh_boiler_efficiency": {
+                "lb": c1.number_input(
+                    "Lower Bound: main_sh_boiler_efficiency", value=19
+                ),
+                "ub": c2.number_input(
+                    "Lower Bound: main_sh_boiler_efficiency", value=600
+                ),
+            },
+            "main_hw_boiler_efficiency": {
+                "lb": c1.number_input(
+                    "Lower Bound: main_hw_boiler_efficiency", value=19
+                ),
+                "ub": c2.number_input(
+                    "Lower Bound: main_hw_boiler_efficiency", value=320
+                ),
+            },
+            "main_sh_boiler_efficiency_adjustment_factor": {
+                "lb": st.number_input(
+                    "Lower Bound: main_sh_boiler_efficiency_adjustment_factor",
+                    value=0.7,
+                ),
+            },
+            "main_hw_boiler_efficiency_adjustment_factor": {
+                "lb": st.number_input(
+                    "Lower Bound: main_hw_boiler_efficiency_adjustment_factor",
+                    value=0.7,
+                ),
+            },
+            "declared_loss_factor": {
+                "ub": st.number_input(
+                    "Upper Bound: declared_loss_factor",
+                    value=20,
+                ),
+            },
+            "thermal_bridging_factor": {
+                "lb": c1.number_input("Lower Bound: thermal_bridging_factor", value=0),
+                "ub": c2.number_input(
+                    "Lower Bound: thermal_bridging_factor", value=0.15
+                ),
+            },
+        }
         clean_bers = (
             bers.copy()
             .pipe(
@@ -124,8 +176,8 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
                 filter_name="lb < ground_floor_area < ub",
                 selected_filters=selected_filters,
                 condition="ground_floor_area > {lb} and ground_floor_area < {ub}".format(
-                    lb=c1.number_input("Lower Bound: ground_floor_area", value=0),
-                    ub=c2.number_input("Upper Bound: ground_floor_area", value=1000),
+                    lb=selections["ground_floor_area"]["lb"],
+                    ub=selections["ground_floor_area"]["ub"],
                 ),
             )
             .pipe(
@@ -133,8 +185,8 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
                 filter_name="lb < living_area_percent < ub",
                 selected_filters=selected_filters,
                 condition="living_area_percent > {lb} or living_area_percent < {ub}".format(
-                    lb=c1.number_input("Lower Bound: living_area_percent", value=5),
-                    ub=c2.number_input("Upper Bound: living_area_percent", value=90),
+                    lb=selections["living_area_percent"]["lb"],
+                    ub=selections["living_area_percent"]["ub"],
                 ),
             )
             .pipe(
@@ -142,12 +194,8 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
                 filter_name="lb < main_sh_boiler_efficiency < ub",
                 selected_filters=selected_filters,
                 condition="main_sh_boiler_efficiency > {lb} or main_sh_boiler_efficiency < {ub}".format(
-                    lb=c1.number_input(
-                        "Lower Bound: main_sh_boiler_efficiency", value=19
-                    ),
-                    ub=c2.number_input(
-                        "Upper Bound: main_sh_boiler_efficiency", value=600
-                    ),
+                    lb=selections["main_sh_boiler_efficiency"]["lb"],
+                    ub=selections["main_sh_boiler_efficiency"]["ub"],
                 ),
             )
             .pipe(
@@ -155,12 +203,8 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
                 filter_name="lb < main_hw_boiler_efficiency < ub",
                 selected_filters=selected_filters,
                 condition="main_hw_boiler_efficiency > {lb} or main_hw_boiler_efficiency < {ub}".format(
-                    lb=c1.number_input(
-                        "Lower Bound: main_hw_boiler_efficiency", value=19
-                    ),
-                    ub=c2.number_input(
-                        "Upper Bound: main_hw_boiler_efficiency", value=320
-                    ),
+                    lb=selections["main_hw_boiler_efficiency"]["lb"],
+                    ub=selections["main_hw_boiler_efficiency"]["ub"],
                 ),
             )
             .pipe(
@@ -168,10 +212,7 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
                 filter_name="main_sh_boiler_efficiency_adjustment_factor > lb",
                 selected_filters=selected_filters,
                 condition="main_sh_boiler_efficiency_adjustment_factor > {lb}".format(
-                    lb=st.number_input(
-                        "Lower Bound: main_sh_boiler_efficiency_adjustment_factor",
-                        value=0.7,
-                    ),
+                    lb=selections["main_sh_boiler_efficiency_adjustment_factor"]["lb"],
                 ),
             )
             .pipe(
@@ -179,10 +220,7 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
                 filter_name="main_hw_boiler_efficiency_adjustment_factor > lb",
                 selected_filters=selected_filters,
                 condition="main_hw_boiler_efficiency_adjustment_factor > {lb}".format(
-                    lb=st.number_input(
-                        "Lower Bound: main_hw_boiler_efficiency_adjustment_factor",
-                        value=0.7,
-                    ),
+                    lb=selections["main_hw_boiler_efficiency_adjustment_factor"]["lb"],
                 ),
             )
             .pipe(
@@ -190,10 +228,7 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
                 filter_name="declared_loss_factor < ub",
                 selected_filters=selected_filters,
                 condition="declared_loss_factor < {ub}".format(
-                    ub=st.number_input(
-                        "Upper Bound: declared_loss_factor",
-                        value=20,
-                    ),
+                    ub=selections["declared_loss_factor"]["ub"],
                 ),
             )
             .pipe(
@@ -201,10 +236,8 @@ def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
                 filter_name="lb < thermal_bridging_factor < ub",
                 selected_filters=selected_filters,
                 condition="thermal_bridging_factor > {lb} or thermal_bridging_factor <= {ub}".format(
-                    lb=c1.number_input("Lower Bound: thermal_bridging_factor", value=0),
-                    ub=c2.number_input(
-                        "Upper Bound: thermal_bridging_factor", value=0.15
-                    ),
+                    lb=selections["thermal_bridging_factor"]["lb"],
+                    ub=selections["thermal_bridging_factor"]["ub"],
                 ),
             )
         )
