@@ -51,6 +51,10 @@ def main():
         type="zip",
     )
     small_area_bers_is_selected = bool(small_area_bers_zipfile)
+
+    download_filetype = st.selectbox(
+        "Download format?", options=[".csv.gz", ".parquet"]
+    )
     census_is_selected = st.checkbox("Link to the 2016 census?", value=True)
     archetype_is_selected = st.checkbox(
         "Fill unknown buildings with archetypes?", value=True
@@ -64,14 +68,14 @@ def main():
         archetyped_bers, archetypes = archetype.main(
             census_bers, archetype_is_selected, census_is_selected
         )
-        create_csv_download_link(
+        create_download_link(
             archetyped_bers,
             filename=f"small_area_bers_{datetime.date.today()}",
-            suffix=".csv.gz",
+            suffix=download_filetype,
         )
         if archetypes:
             for name, data in archetypes.items():
-                create_csv_download_link(
+                create_download_link(
                     data,
                     filename=f"{name}_archetypes_{datetime.date.today()}",
                     suffix=".csv",
@@ -80,14 +84,14 @@ def main():
         st.info("'Link to 2016 census?' not yet implemented!")
         st.info("'Fill unknown buildings with archetypes?' not yet implemented!")
         postcode_bers = postcodes.main()
-        create_csv_download_link(
+        create_download_link(
             postcode_bers,
             filename=f"postcode_bers_{datetime.date.today()}",
-            suffix=".csv.gz",
+            suffix=download_filetype,
         )
 
 
-def create_csv_download_link(df: pd.DataFrame, filename: str, suffix: str):
+def create_download_link(df: pd.DataFrame, filename: str, suffix: str):
     # workaround from streamlit/streamlit#400
     with st.spinner(f"Saving '{filename}{suffix}' to disk..."):
         STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
@@ -95,7 +99,12 @@ def create_csv_download_link(df: pd.DataFrame, filename: str, suffix: str):
         if not DOWNLOADS_PATH.is_dir():
             DOWNLOADS_PATH.mkdir()
         filepath = (DOWNLOADS_PATH / filename).with_suffix(suffix)
-        df.to_csv(filepath, index=False)
+        if suffix in [".csv", ".csv.gz"]:
+            df.to_csv(filepath, index=False)
+        elif suffix == ".parquet":
+            df.to_parquet(filepath)
+        else:
+            st.error(f"{suffix} is not currently supported!")
         st.markdown(f"[{filepath.name}](downloads/{filepath.name})")
 
 
