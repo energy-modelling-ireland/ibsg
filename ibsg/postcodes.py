@@ -93,144 +93,121 @@ def _load_postcode_bers(url: str) -> pd.DataFrame:
 def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
     filter_names = [
         "Is not provisional",
-        "Is valid ground_floor_area",
-        "Is valid living_area_percent",
-        "Is valid main_sh_boiler_efficiency",
-        "Is valid main_hw_boiler_efficiency",
-        "Is valid main_sh_boiler_efficiency_adjustment_factor",
-        "Is valid main_hw_boiler_efficiency_adjustment_factor",
-        "Is valid suppl_sh_heat_fraction",
-        "Is valid declared_loss_factor",
-        "Is valid thermal_bridging_factor",
+        "lb < ground_floor_area < ub",
+        "lb < living_area_percent < ub",
+        "lb < main_sh_boiler_efficiency < ub",
+        "lb < main_hw_boiler_efficiency < ub",
+        "main_sh_boiler_efficiency_adjustment_factor > lb",
+        "main_hw_boiler_efficiency_adjustment_factor > lb",
+        "declared_loss_factor < ub",
+        "lb < thermal_bridging_factor < ub",
     ]
     selected_filters = st.multiselect(
         "Select Filters",
         options=filter_names,
         default=filter_names,
     )
-    with st.beta_expander("Change Filter Bounds"):
+    st.info("*lb = Lower Bound, ub = Upper Bound*")
+
+    with st.beta_expander("Change Filter Bounds?"):
         c1, c2 = st.beta_columns(2)
-        ground_floor_area_lower_bound = c1.number_input(
-            "ground_floor_area_lower_bound", value=0
+        clean_bers = (
+            bers.copy()
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="Is not provisional",
+                selected_filters=selected_filters,
+                condition="type_of_rating != 'Provisional    '",
+            )
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="lb < ground_floor_area < ub",
+                selected_filters=selected_filters,
+                condition="ground_floor_area > {lb} and ground_floor_area < {ub}".format(
+                    lb=c1.number_input("Lower Bound: ground_floor_area", value=0),
+                    ub=c2.number_input("Upper Bound: ground_floor_area", value=1000),
+                ),
+            )
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="lb < living_area_percent < ub",
+                selected_filters=selected_filters,
+                condition="living_area_percent > {lb} or living_area_percent < {ub}".format(
+                    lb=c1.number_input("Lower Bound: living_area_percent", value=5),
+                    ub=c2.number_input("Upper Bound: living_area_percent", value=90),
+                ),
+            )
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="lb < main_sh_boiler_efficiency < ub",
+                selected_filters=selected_filters,
+                condition="main_sh_boiler_efficiency > {lb} or main_sh_boiler_efficiency < {ub}".format(
+                    lb=c1.number_input(
+                        "Lower Bound: main_sh_boiler_efficiency", value=19
+                    ),
+                    ub=c2.number_input(
+                        "Upper Bound: main_sh_boiler_efficiency", value=600
+                    ),
+                ),
+            )
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="lb < main_hw_boiler_efficiency < ub",
+                selected_filters=selected_filters,
+                condition="main_hw_boiler_efficiency > {lb} or main_hw_boiler_efficiency < {ub}".format(
+                    lb=c1.number_input(
+                        "Lower Bound: main_hw_boiler_efficiency", value=19
+                    ),
+                    ub=c2.number_input(
+                        "Upper Bound: main_hw_boiler_efficiency", value=320
+                    ),
+                ),
+            )
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="main_sh_boiler_efficiency_adjustment_factor > lb",
+                selected_filters=selected_filters,
+                condition="main_sh_boiler_efficiency_adjustment_factor > {lb}".format(
+                    lb=st.number_input(
+                        "Lower Bound: main_sh_boiler_efficiency_adjustment_factor",
+                        value=0.7,
+                    ),
+                ),
+            )
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="main_hw_boiler_efficiency_adjustment_factor > lb",
+                selected_filters=selected_filters,
+                condition="main_hw_boiler_efficiency_adjustment_factor > {lb}".format(
+                    lb=st.number_input(
+                        "Lower Bound: main_hw_boiler_efficiency_adjustment_factor",
+                        value=0.7,
+                    ),
+                ),
+            )
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="declared_loss_factor < ub",
+                selected_filters=selected_filters,
+                condition="declared_loss_factor < {ub}".format(
+                    ub=st.number_input(
+                        "Upper Bound: declared_loss_factor",
+                        value=20,
+                    ),
+                ),
+            )
+            .pipe(
+                clean.get_rows_meeting_condition,
+                filter_name="lb < thermal_bridging_factor < ub",
+                selected_filters=selected_filters,
+                condition="thermal_bridging_factor > {lb} or thermal_bridging_factor <= {ub}".format(
+                    lb=c1.number_input("Lower Bound: thermal_bridging_factor", value=0),
+                    ub=c2.number_input(
+                        "Upper Bound: thermal_bridging_factor", value=0.15
+                    ),
+                ),
+            )
         )
-        ground_floor_area_upper_bound = c2.number_input(
-            "ground_floor_area_upper_bound", value=1000
-        )
-        living_area_percent_lower_bound = c1.number_input(
-            "living_area_percent_lower_bound",
-            value=5,
-        )
-        living_area_percent_upper_bound = c2.number_input(
-            "living_area_percent_upper_bound",
-            value=90,
-        )
-        main_sh_boiler_efficiency_lower_bound = c1.number_input(
-            "main_sh_boiler_efficiency_lower_bound",
-            value=19,
-        )
-        main_sh_boiler_efficiency_upper_bound = c2.number_input(
-            "main_sh_boiler_efficiency_upper_bound",
-            value=600,
-        )
-        main_hw_boiler_efficiency_lower_bound = c1.number_input(
-            "main_hw_boiler_efficiency_lower_bound",
-            value=19,
-        )
-        main_hw_boiler_efficiency_upper_bound = c2.number_input(
-            "main_hw_boiler_efficiency_upper_bound",
-            value=320,
-        )
-        main_sh_boiler_efficiency_adjustment_factor_lower_bound = st.number_input(
-            "main_sh_boiler_efficiency_adjustment_factor_lower_bound",
-            value=0.7,
-        )
-        main_hw_boiler_efficiency_adjustment_factor_lower_bound = st.number_input(
-            "main_hw_boiler_efficiency_adjustment_factor_lower_bound",
-            value=0.7,
-        )
-        declared_loss_factor_upper_bound = st.number_input(
-            "declared_loss_factor_upper_bound",
-            value=20,
-        )
-        thermal_bridging_factor_lower_bound = c1.number_input(
-            "thermal_bridging_factor_lower_bound",
-            value=0,
-        )
-        thermal_bridging_factor_upper_bound = c2.number_input(
-            "thermal_bridging_factor_upper_bound",
-            value=0.15,
-        )
-    clean_bers = (
-        bers.copy()
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is not provisional",
-            selected_filters=selected_filters,
-            condition="type_of_rating != 'Provisional    '",
-        )
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is valid ground_floor_area",
-            selected_filters=selected_filters,
-            condition=f"ground_floor_area > {ground_floor_area_lower_bound}"
-            + f" and ground_floor_area < {ground_floor_area_upper_bound}",
-        )
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is valid living_area_percent",
-            selected_filters=selected_filters,
-            condition=f"living_area_percent > {living_area_percent_lower_bound}"
-            + f" or living_area_percent < {living_area_percent_upper_bound}",
-        )
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is valid main_sh_boiler_efficiency",
-            selected_filters=selected_filters,
-            condition=f"main_sh_boiler_efficiency > {main_sh_boiler_efficiency_lower_bound}"
-            + f" or main_sh_boiler_efficiency < {main_sh_boiler_efficiency_upper_bound}",
-        )
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is valid main_hw_boiler_efficiency",
-            selected_filters=selected_filters,
-            condition=f"main_hw_boiler_efficiency > {main_hw_boiler_efficiency_lower_bound}"
-            + f" or main_hw_boiler_efficiency < {main_hw_boiler_efficiency_upper_bound}",
-        )
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is valid main_sh_boiler_efficiency_adjustment_factor",
-            selected_filters=selected_filters,
-            condition="main_sh_boiler_efficiency_adjustment_factor"
-            + f" > {main_sh_boiler_efficiency_adjustment_factor_lower_bound}",
-        )
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is valid main_hw_boiler_efficiency_adjustment_factor",
-            selected_filters=selected_filters,
-            condition="main_hw_boiler_efficiency_adjustment_factor"
-            + f" > {main_hw_boiler_efficiency_adjustment_factor_lower_bound}",
-        )
-        .pipe(
-            clean.get_rows_equal_to_values,
-            filter_name="Is valid suppl_sh_heat_fraction",
-            selected_filters=selected_filters,
-            on_column="suppl_sh_heat_fraction",
-            values=["0", "0.1", "0.15", "0.2"],
-        )
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is valid declared_loss_factor",
-            selected_filters=selected_filters,
-            condition=f"declared_loss_factor < {declared_loss_factor_upper_bound}",
-        )
-        .pipe(
-            clean.get_rows_meeting_condition,
-            filter_name="Is valid thermal_bridging_factor",
-            selected_filters=selected_filters,
-            condition=f"thermal_bridging_factor > {thermal_bridging_factor_lower_bound}"
-            + f" or thermal_bridging_factor <= {thermal_bridging_factor_upper_bound}",
-        )
-    )
     length_before = len(bers)
     length_after = len(clean_bers)
     percentage_change = 100 * (length_before - length_after) / length_before
