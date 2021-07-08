@@ -1,5 +1,7 @@
 import datetime
 from pathlib import Path
+from typing import Any
+from typing import Dict
 
 import pandas as pd
 import streamlit as st
@@ -11,7 +13,7 @@ from ibsg import postcodes
 from ibsg import small_areas
 
 
-def main():
+def main(defaults: Dict[str, Any] = DEFAULTS):
     st.markdown(
         """
         # 🏠 Irish Building Stock Generator 🏠
@@ -40,9 +42,23 @@ def main():
         - `ibsg` won't be able to read your zipped Small Area BERs `csv` file if the
         column names don't match:
 
-        `{list(DEFAULTS['small_areas']['mappings'].keys())}`
+        `{list(defaults['small_areas']['mappings'].keys())}`
         """
         )
+
+    selections = {}
+    selections["countyname"] = st.multiselect(
+        f"Select countyname",
+        options=defaults["countyname"],
+        default=defaults["countyname"],
+    )
+    selections["census"] = st.checkbox("Link to the 2016 census?", value=True)
+    selections["archetype"] = st.checkbox(
+        "Fill unknown buildings with archetypes?", value=True
+    )
+    selections["download_filetype"] = st.selectbox(
+        "Download format?", options=[".csv.gz", ".parquet"]
+    )
 
     c1, c2 = st.beta_columns(2)
     postcode_bers_is_selected = c1.button("Fetch Postcode BERs")
@@ -52,26 +68,16 @@ def main():
     )
     small_area_bers_is_selected = bool(small_area_bers_zipfile)
 
-    download_filetype = st.selectbox(
-        "Download format?", options=[".csv.gz", ".parquet"]
-    )
-    census_is_selected = st.checkbox("Link to the 2016 census?", value=True)
-    archetype_is_selected = st.checkbox(
-        "Fill unknown buildings with archetypes?", value=True
-    )
-
     if small_area_bers_is_selected:
-        small_area_bers = small_areas.main(small_area_bers_zipfile)
-        census_bers, census_is_selected = census.main(
-            small_area_bers, archetype_is_selected
+        small_area_bers = small_areas.main(
+            small_area_bers_zipfile, selections=selections
         )
-        archetyped_bers, archetypes = archetype.main(
-            census_bers, archetype_is_selected, census_is_selected
-        )
+        census_bers = census.main(small_area_bers, selections=selections)
+        archetyped_bers, archetypes = archetype.main(census_bers, selections=selections)
         create_download_link(
             archetyped_bers,
             filename=f"small_area_bers_{datetime.date.today()}",
-            suffix=download_filetype,
+            suffix=selections["download_filetype"],
         )
         if archetypes:
             for name, data in archetypes.items():
@@ -83,11 +89,11 @@ def main():
     elif postcode_bers_is_selected:
         st.info("'Link to 2016 census?' not yet implemented!")
         st.info("'Fill unknown buildings with archetypes?' not yet implemented!")
-        postcode_bers = postcodes.main()
+        postcode_bers = postcodes.main(selections=selections)
         create_download_link(
             postcode_bers,
             filename=f"postcode_bers_{datetime.date.today()}",
-            suffix=download_filetype,
+            suffix=selections["download_filetype"],
         )
 
 

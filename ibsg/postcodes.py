@@ -1,5 +1,6 @@
 from collections import defaultdict
 from configparser import ConfigParser
+from typing import Any
 from typing import Dict
 
 import pandas as pd
@@ -7,13 +8,18 @@ import streamlit as st
 
 from ibsg import clean
 from ibsg import CONFIG
+from ibsg import DEFAULTS
 from ibsg.fetch import fetch
 from ibsg import filter
 from ibsg import _LOCAL
 from ibsg import _DATA_DIR
 
 
-def main(config: ConfigParser = CONFIG) -> pd.DataFrame:
+def main(
+    selections: Dict[str, Any],
+    defaults: Dict[str, Any] = DEFAULTS,
+    config: ConfigParser = CONFIG,
+) -> pd.DataFrame:
     ## Fetch
     postcode_bers_raw = _load_postcode_bers(config["urls"]["postcode_bers"])
 
@@ -22,60 +28,8 @@ def main(config: ConfigParser = CONFIG) -> pd.DataFrame:
         postcode_bers_in_countyname = filter.filter_by_substrings(
             postcode_bers_raw,
             column_name="countyname",
-            all_substrings=[
-                "Co. Carlow",
-                "Co. Cavan",
-                "Co. Clare",
-                "Co. Cork",
-                "Co. Donegal",
-                "Co. Dublin",
-                "Co. Galway",
-                "Co. Kerry",
-                "Co. Kildare",
-                "Co. Kilkenny",
-                "Co. Laois",
-                "Co. Leitrim",
-                "Co. Limerick",
-                "Co. Longford",
-                "Co. Louth",
-                "Co. Mayo",
-                "Co. Meath",
-                "Co. Monaghan",
-                "Co. Offaly",
-                "Co. Roscommon",
-                "Co. Sligo",
-                "Co. Tipperary",
-                "Co. Waterford",
-                "Co. Westmeath",
-                "Co. Wexford",
-                "Co. Wicklow",
-                "Cork City",
-                "Dublin 1",
-                "Dublin 10",
-                "Dublin 11",
-                "Dublin 12",
-                "Dublin 13",
-                "Dublin 14",
-                "Dublin 15",
-                "Dublin 16",
-                "Dublin 17",
-                "Dublin 18",
-                "Dublin 2",
-                "Dublin 20",
-                "Dublin 22",
-                "Dublin 24",
-                "Dublin 3",
-                "Dublin 4",
-                "Dublin 5",
-                "Dublin 6",
-                "Dublin 6W",
-                "Dublin 7",
-                "Dublin 8",
-                "Dublin 9",
-                "Galway City",
-                "Limerick City",
-                "Waterford City",
-            ],
+            selected_substrings=selections["countyname"],
+            all_substrings=defaults["countyname"],
         )
         clean_postcode_bers = _clean_postcode_bers(postcode_bers_in_countyname)
 

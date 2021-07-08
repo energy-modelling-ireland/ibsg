@@ -27,13 +27,15 @@ from ibsg import filter
     ],
 )
 def test_filter_by_substrings(
-    bers, selected_postcodes, counties, expected_output, monkeypatch
+    bers,
+    selected_postcodes,
+    counties,
+    expected_output,
 ):
-    def _mock_multiselect(*args, **kwargs):
-        return selected_postcodes
-
-    monkeypatch.setattr("app.st.multiselect", _mock_multiselect)
     output = filter.filter_by_substrings(
-        df=bers, column_name="countyname", all_substrings=counties
+        df=bers,
+        column_name="countyname",
+        selected_substrings=selected_postcodes,
+        all_substrings=counties,
     )
     assert_frame_equal(output, expected_output)

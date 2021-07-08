@@ -1,17 +1,15 @@
 from configparser import ConfigParser
 from io import BytesIO
+from typing import Any
 from typing import Dict
 from typing import List
 
 from zipfile import ZipFile
 
 import icontract
-import numpy as np
 import pandas as pd
 import streamlit as st
 
-from ibsg import archetype
-from ibsg import census
 from ibsg import clean
 from ibsg.fetch import fetch
 from ibsg import filter
@@ -25,6 +23,8 @@ from ibsg import CONFIG
 
 def main(
     zipped_csv_of_bers: BytesIO,
+    selections: Dict[str, Any],
+    defaults: Dict[str, Any] = DEFAULTS,
     config: ConfigParser = CONFIG,
 ) -> pd.DataFrame:
     ## Load
@@ -36,60 +36,8 @@ def main(
         sa_bers_in_countyname = filter.filter_by_substrings(
             raw_sa_bers,
             column_name="countyname",
-            all_substrings=[
-                "Co. Carlow",
-                "Co. Cavan",
-                "Co. Clare",
-                "Co. Cork",
-                "Co. Donegal",
-                "Co. Dublin",
-                "Co. Galway",
-                "Co. Kerry",
-                "Co. Kildare",
-                "Co. Kilkenny",
-                "Co. Laois",
-                "Co. Leitrim",
-                "Co. Limerick",
-                "Co. Longford",
-                "Co. Louth",
-                "Co. Mayo",
-                "Co. Meath",
-                "Co. Monaghan",
-                "Co. Offaly",
-                "Co. Roscommon",
-                "Co. Sligo",
-                "Co. Tipperary",
-                "Co. Waterford",
-                "Co. Westmeath",
-                "Co. Wexford",
-                "Co. Wicklow",
-                "Cork City",
-                "Dublin 1",
-                "Dublin 10",
-                "Dublin 11",
-                "Dublin 12",
-                "Dublin 13",
-                "Dublin 14",
-                "Dublin 15",
-                "Dublin 16",
-                "Dublin 17",
-                "Dublin 18",
-                "Dublin 2",
-                "Dublin 20",
-                "Dublin 22",
-                "Dublin 24",
-                "Dublin 3",
-                "Dublin 4",
-                "Dublin 5",
-                "Dublin 6",
-                "Dublin 6W",
-                "Dublin 7",
-                "Dublin 8",
-                "Dublin 9",
-                "Galway City",
-                "Limerick City",
-                "Waterford City",
-            ],
+            selected_substrings=selections["countyname"],
+            all_substrings=defaults["countyname"],
         )
 
         ## Clean

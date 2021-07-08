@@ -1,5 +1,7 @@
 from configparser import ConfigParser
 import re
+from typing import Any
+from typing import Dict
 from typing import Optional
 
 import numpy as np
@@ -14,9 +16,11 @@ from ibsg import _DATA_DIR
 
 
 def main(
-    bers: pd.DataFrame, census_is_selected: bool, config: ConfigParser = CONFIG
+    bers: pd.DataFrame,
+    selections: Dict[str, Any],
+    config: ConfigParser = CONFIG,
 ) -> Optional[pd.DataFrame]:
-    if census_is_selected:
+    if selections["census"]:
         with st.spinner("Filling the 2016 census building stock with BERs..."):
             census_building_ages = _load_census_2016_stock(
                 url=config["urls"]["small_area_statistics_2016"]
@@ -27,7 +31,7 @@ def main(
             )
     else:
         stock = bers
-    return stock, census_is_selected
+    return stock
 
 
 @st.cache

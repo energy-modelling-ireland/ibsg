@@ -18,5 +18,5 @@ def test_load_small_area_bers_raises_error_on_empty_file(shared_datadir):
         "anonymised_small_area_ber_sample.csv.zip",
     ],
 )
-def test_main_on_nested_zip_files(filename, shared_datadir, config):
-    small_areas.main(shared_datadir / filename, config=config)
+def test_main_on_nested_zip_files(filename, shared_datadir, selections, config):
+    small_areas.main(shared_datadir / filename, selections=selections, config=config)

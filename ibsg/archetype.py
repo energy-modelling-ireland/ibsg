@@ -1,4 +1,5 @@
 from configparser import ConfigParser
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -19,11 +20,10 @@ Operations = Dict[str, Union[str, Callable]]
 
 def main(
     bers: pd.DataFrame,
-    census_is_selected: bool,
-    archetype_is_selected: bool,
+    selections: Dict[str, Any],
     config: ConfigParser = CONFIG,
 ) -> Tuple[pd.DataFrame, Optional[Dict[str, pd.DataFrame]]]:
-    if census_is_selected and archetype_is_selected:
+    if selections["census"] and selections["archetype"]:
         with st.spinner(
             "Creating archetypes on small_area, countyname & period_built..."
         ):
