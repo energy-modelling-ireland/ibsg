@@ -1,13 +1,20 @@
+from configparser import ConfigParser
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
 from ibsg import clean
+from ibsg import CONFIG
+from ibsg.fetch import fetch
 from ibsg import filter
+from ibsg import _LOCAL
+from ibsg import _DATA_DIR
 
 
-def main() -> pd.DataFrame:
+def main(config: ConfigParser = CONFIG) -> pd.DataFrame:
     ## Fetch
-    postcode_bers_raw = _load_postcode_bers()
+    postcode_bers_raw = _load_postcode_bers(config["urls"]["postcode_bers"])
 
     with st.form("Apply Filters"):
         ## Filter
@@ -78,10 +85,9 @@ def main() -> pd.DataFrame:
 
 
 @st.cache
-def _load_postcode_bers() -> pd.DataFrame:
-    return pd.read_parquet(
-        "https://storage.googleapis.com/ibsg/BERPublicsearch.parquet"
-    )
+def _load_postcode_bers(url: str) -> pd.DataFrame:
+    filepath = fetch(url, _LOCAL, _DATA_DIR)
+    return pd.read_parquet(filepath)
 
 
 def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
