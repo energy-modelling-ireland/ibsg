@@ -81,8 +81,7 @@ def main():
         create_csv_download_link(
             postcode_bers,
             filename=f"postcode_bers_{datetime.date.today()}",
-            suffix=".csv.gz",
-            compression="gzip",
+            suffix=".csv.zip",
         )
 
 
