@@ -51,13 +51,27 @@ def main(defaults: Dict[str, Any] = DEFAULTS):
         f"Select countyname",
         options=defaults["countyname"],
         default=defaults["countyname"],
+        help="""Extract only buildings in certain selected 'countyname' or postcodes
+        such as 'Co. Dublin'""",
     )
-    selections["census"] = st.checkbox("Link to the 2016 census?", value=True)
+    selections["census"] = st.checkbox(
+        "Link to the 2016 census?",
+        value=True,
+        help="""If a dwelling in registered in the 2016 has had a BER assessment fill
+        the building with its corresponding properties, else leave empty""",
+    )
     selections["archetype"] = st.checkbox(
-        "Fill unknown buildings with archetypes?", value=True
+        "Fill unknown buildings with 'small area | countyname | period built' archetypes?",
+        value=True,
+        help="""If >30 buildings of the same 'small area | period built' create an
+        archetype, else do 'small area | period built', finally do 'period built'
+        """,
     )
     selections["download_filetype"] = st.selectbox(
-        "Download format?", options=[".csv.gz", ".parquet"]
+        "Download format?",
+        options=[".csv.gz", ".parquet"],
+        help="""You might need to
+        install 7zip to unzip '.csv.gz' (see hints)""",
     )
 
     c1, c2 = st.beta_columns(2)
