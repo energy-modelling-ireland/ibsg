@@ -21,13 +21,21 @@ def main(
     config: ConfigParser = CONFIG,
 ) -> Optional[pd.DataFrame]:
     if selections["census"]:
+        census_building_ages = _load_census_2016_stock(
+            url=config["urls"]["small_area_statistics_2016"]
+        )
+        if selections["replace_not_stated"]:
+            with st.spinner("Replacing 'Not Stated' Period Built..."):
+                inferred_period_built = _replace_not_stated_period_built(
+                    census_building_ages
+                )
+
         with st.spinner("Filling the 2016 census building stock with BERs..."):
-            census_building_ages = _load_census_2016_stock(
-                url=config["urls"]["small_area_statistics_2016"]
-            )
             small_area_bers = _add_merge_columns_to_bers(bers)
             stock = _fill_stock_with_small_area_bers(
-                stock=census_building_ages, bers=small_area_bers
+                stock=census_building_ages,
+                inferred_period_built=inferred_period_built,
+                bers=small_area_bers,
             )
     else:
         stock = bers
@@ -85,6 +93,16 @@ def _melt_statistics_to_individual_buildings(
     )
 
 
+def _replace_not_stated_period_built(stock: pd.DataFrame) -> pd.Series:
+    return (
+        stock[["small_area", "period_built"]]
+        .assign(period_built=lambda df: df["period_built"].replace({"NS": np.nan}))
+        .groupby("small_area")["period_built"]
+        .apply(lambda s: s.fillna(s.mode()[0]))
+        .reset_index(drop=True)
+    )
+
+
 def _add_merge_columns_to_census_stock(stock: pd.DataFrame) -> pd.DataFrame:
     stock["id"] = clean.get_group_id(stock, columns=["small_area", "period_built"])
     return stock
@@ -128,12 +146,19 @@ def _add_merge_columns_to_bers(bers: pd.DataFrame) -> pd.DataFrame:
 
 
 def _fill_stock_with_small_area_bers(
-    stock: pd.DataFrame, bers: pd.DataFrame
+    stock: pd.DataFrame, inferred_period_built: pd.Series, bers: pd.DataFrame
 ) -> pd.DataFrame:
-    before_2016 = stock.merge(
-        bers.query("year_of_construction < 2016"),
-        on=["small_area", "period_built", "id"],
-        how="left",
+    before_2016 = (
+        stock.copy()
+        .assign(
+            is_period_built_estimated=lambda df: df["period_built"] == "NS",
+            period_built=inferred_period_built,
+        )
+        .merge(
+            bers.query("year_of_construction < 2016"),
+            on=["small_area", "period_built", "id"],
+            how="left",
+        )
     )
     after_2016 = bers.query("year_of_construction >= 2016")
     return pd.concat([before_2016, after_2016])
