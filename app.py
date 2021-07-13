@@ -47,6 +47,14 @@ def main(defaults: Dict[str, Any] = DEFAULTS):
         )
 
     selections = {}
+    selections["ber_granularity"] = st.radio(
+        "BER Granularity",
+        options=["countyname", "small_area"],
+        help="""Granularity is the extent to which a system is broken down into small
+        parts, either the system itself or its description or observation. It is the
+        'extent to which a larger entity is subdivided. For example, a yard broken into
+        inches has finer granularity than a yard broken into feet.'""",
+    )
     selections["countyname"] = st.multiselect(
         f"Select countyname",
         options=defaults["countyname"],
@@ -67,48 +75,62 @@ def main(defaults: Dict[str, Any] = DEFAULTS):
         archetype, else do 'small area | period built', finally do 'period built'
         """,
     )
+    selections["replace_not_stated"] = st.checkbox(
+        "Replace 'Not stated' period built with Mode?",
+        value=True,
+        help="""Cannot archetype buildings with unknown Period Built so they must be
+        inferred to estimate the properties of these buildings""",
+    )
     selections["download_filetype"] = st.selectbox(
         "Download format?",
         options=[".csv.gz", ".parquet"],
-        help="""You might need to
-        install 7zip to unzip '.csv.gz' (see hints)""",
+        help="You might need to install 7zip to unzip '.csv.gz' (see hints)",
     )
 
-    c1, c2 = st.beta_columns(2)
-    postcode_bers_is_selected = c1.button("Fetch Postcode BERs")
-    small_area_bers_zipfile = c2.file_uploader(
-        "Upload Small Area BERs",
-        type="zip",
-    )
-    small_area_bers_is_selected = bool(small_area_bers_zipfile)
+    if selections["ber_granularity"] == "countyname":
+        postcode_bers_is_selected = st.button("Fetch Postcode BERs")
+        if postcode_bers_is_selected:
+            _generate_countyname_building_stock(selections)
 
-    if small_area_bers_is_selected:
-        small_area_bers = small_areas.main(
-            small_area_bers_zipfile, selections=selections
+    elif selections["ber_granularity"] == "small_area":
+        small_area_bers_zipfile = st.file_uploader(
+            "Upload Small Area BERs",
+            type="zip",
         )
-        census_bers = census.main(small_area_bers, selections=selections)
-        archetyped_bers, archetypes = archetype.main(census_bers, selections=selections)
-        create_download_link(
-            archetyped_bers,
-            filename=f"small_area_bers_{datetime.date.today()}",
-            suffix=selections["download_filetype"],
-        )
-        if archetypes:
-            for name, data in archetypes.items():
-                create_download_link(
-                    data,
-                    filename=f"{name}_archetypes_{datetime.date.today()}",
-                    suffix=".csv",
-                )
-    elif postcode_bers_is_selected:
-        st.info("'Link to 2016 census?' not yet implemented!")
-        st.info("'Fill unknown buildings with archetypes?' not yet implemented!")
-        postcode_bers = postcodes.main(selections=selections)
-        create_download_link(
-            postcode_bers,
-            filename=f"postcode_bers_{datetime.date.today()}",
-            suffix=selections["download_filetype"],
-        )
+        small_area_bers_is_selected = bool(small_area_bers_zipfile)
+        if small_area_bers_is_selected:
+            _generate_small_area_building_stock(
+                selections, zipfile=small_area_bers_zipfile
+            )
+
+
+def _generate_countyname_building_stock(selections):
+    st.info("'Link to 2016 census?' not yet implemented!")
+    st.info("'Fill unknown buildings with archetypes?' not yet implemented!")
+    postcode_bers = postcodes.main(selections=selections)
+    create_download_link(
+        postcode_bers,
+        filename=f"postcode_bers_{datetime.date.today()}",
+        suffix=selections["download_filetype"],
+    )
+
+
+def _generate_small_area_building_stock(selections, zipfile):
+    small_area_bers = small_areas.main(zipfile, selections=selections)
+    census_bers = census.main(small_area_bers, selections=selections)
+    archetyped_bers, archetypes = archetype.main(census_bers, selections=selections)
+    create_download_link(
+        archetyped_bers,
+        filename=f"small_area_bers_{datetime.date.today()}",
+        suffix=selections["download_filetype"],
+    )
+    if archetypes:
+        for name, data in archetypes.items():
+            create_download_link(
+                data,
+                filename=f"{name}_archetypes_{datetime.date.today()}",
+                suffix=".csv",
+            )
 
 
 def create_download_link(df: pd.DataFrame, filename: str, suffix: str):
