@@ -117,7 +117,8 @@ def _generate_countyname_building_stock(selections):
 
 def _generate_small_area_building_stock(selections, zipfile):
     small_area_bers = small_areas.main(zipfile, selections=selections)
-    census_bers = census.main(small_area_bers, selections=selections)
+    if selections["census"]:
+        census_bers = census.main(small_area_bers, selections=selections)
     archetyped_bers, archetypes = archetype.main(census_bers, selections=selections)
     create_download_link(
         archetyped_bers,
