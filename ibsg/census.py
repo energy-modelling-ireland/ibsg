@@ -32,9 +32,18 @@ def main(
     else:
         census = filtered_census
     with st.spinner("Filling the 2016 census building stock with BERs..."):
-        stock = _fill_stock_with_small_area_bers(
-            stock=_add_merge_columns_to_census(census),
-            bers=_add_merge_columns_to_bers(bers),
+        if selections["ber_granularity"] == "countyname":
+            merge_columns = ["countyname", "period_built"]
+        elif selections["ber_granularity"] == "small_area":
+            merge_columns = ["small_area", "period_built"]
+        else:
+            raise ValueError(
+                "Only countyname or small_area ber_granularity are supported"
+            )
+        stock = _fill_census_with_bers(
+            stock=_add_merge_columns_to_census(census, merge_columns),
+            bers=_add_merge_columns_to_bers(bers, merge_columns),
+            merge_columns=merge_columns + ["id"],
         )
     return stock
 
@@ -70,12 +79,16 @@ def replace_not_stated_period_built_with_mode(stock: pd.DataFrame) -> pd.Series:
     return inferred_stock
 
 
-def _add_merge_columns_to_census(stock: pd.DataFrame) -> pd.DataFrame:
-    stock["id"] = clean.get_group_id(stock, columns=["small_area", "period_built"])
+def _add_merge_columns_to_census(
+    stock: pd.DataFrame, merge_columns: List[str]
+) -> pd.DataFrame:
+    stock["id"] = clean.get_group_id(stock, columns=merge_columns)
     return stock
 
 
-def _add_merge_columns_to_bers(bers: pd.DataFrame) -> pd.DataFrame:
+def _add_merge_columns_to_bers(
+    bers: pd.DataFrame, merge_columns: List[str]
+) -> pd.DataFrame:
     bers["period_built"] = pd.cut(
         bers["year_of_construction"],
         bins=[
@@ -102,16 +115,16 @@ def _add_merge_columns_to_bers(bers: pd.DataFrame) -> pd.DataFrame:
             "11L",
         ],
     )
-    bers["id"] = clean.get_group_id(bers, columns=["small_area", "period_built"])
+    bers["id"] = clean.get_group_id(bers, columns=merge_columns)
     return bers
 
 
-def _fill_stock_with_small_area_bers(
-    stock: pd.DataFrame, bers: pd.DataFrame
+def _fill_census_with_bers(
+    stock: pd.DataFrame, bers: pd.DataFrame, merge_columns: List[str]
 ) -> pd.DataFrame:
     before_2016 = stock.merge(
         bers.query("year_of_construction < 2016"),
-        on=["small_area", "period_built", "id"],
+        on=merge_columns,
         how="left",
     )
     after_2016 = bers.query("year_of_construction >= 2016")

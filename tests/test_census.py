@@ -39,14 +39,48 @@ def test_replace_not_stated_period_built_with_small_area_mode():
     [DEFAULTS["countyname"], ["CO. DUBLIN"]],
     ids=["All countyname", "CO. DUBLIN"],
 )
-def test_main(
+def test_main_on_countyname_bers(
+    countyname_bers: pd.DataFrame,
+    config: ConfigParser,
+    shared_datadir: Path,
+    replace_not_stated: bool,
+    countyname: List[str],
+):
+    selections = {
+        "ber_granularity": "countyname",
+        "replace_not_stated": replace_not_stated,
+        "countyname": countyname,
+    }
+    census.main(
+        bers=countyname_bers,
+        selections=selections,
+        config=config,
+        data_dir=shared_datadir,
+    )
+
+
+@pytest.mark.parametrize(
+    "replace_not_stated",
+    [True, False],
+    ids=["replace_not_stated is True", "replace_not_stated is False"],
+)
+@pytest.mark.parametrize(
+    "countyname",
+    [DEFAULTS["countyname"], ["CO. DUBLIN"]],
+    ids=["All countyname", "CO. DUBLIN"],
+)
+def test_main_on_small_area_bers(
     small_area_bers: pd.DataFrame,
     config: ConfigParser,
     shared_datadir: Path,
     replace_not_stated: bool,
     countyname: List[str],
 ):
-    selections = {"replace_not_stated": replace_not_stated, "countyname": countyname}
+    selections = {
+        "ber_granularity": "small_area",
+        "replace_not_stated": replace_not_stated,
+        "countyname": countyname,
+    }
     census.main(
         bers=small_area_bers,
         selections=selections,

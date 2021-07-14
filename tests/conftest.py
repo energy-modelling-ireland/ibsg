@@ -1,5 +1,6 @@
 from configparser import ConfigParser
 from typing import List
+from _pytest.mark import param
 
 import pandas as pd
 import pytest
@@ -101,3 +102,8 @@ def small_area_bers(shared_datadir, config, small_area_ids_2016):
     return small_areas._filter_small_area_bers(
         bers=raw_sa_bers, small_area_ids=small_area_ids_2016
     )
+
+
+@pytest.fixture
+def countyname_bers(shared_datadir):
+    return pd.read_parquet(shared_datadir / "BERPublicsearch.parquet")
