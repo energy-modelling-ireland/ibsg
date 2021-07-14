@@ -2,8 +2,10 @@ from configparser import ConfigParser
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
 
+import icontract
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -23,11 +25,12 @@ def main(
     raw_census = _load_census_buildings(
         url=config["urls"]["census_buildings_2016"], data_dir=data_dir
     )
+    filtered_census = _extract_rows_in_values(raw_census, selections["countyname"])
     if selections["replace_not_stated"]:
         with st.spinner("Replacing 'Not Stated' Period Built..."):
-            census = replace_not_stated_period_built_with_mode(raw_census)
+            census = replace_not_stated_period_built_with_mode(filtered_census)
     else:
-        census = raw_census
+        census = filtered_census
     with st.spinner("Filling the 2016 census building stock with BERs..."):
         stock = _fill_stock_with_small_area_bers(
             stock=_add_merge_columns_to_census(census),
@@ -41,6 +44,14 @@ def _load_census_buildings(url: str, data_dir: Path) -> pd.DataFrame:
     return io.load(
         read=pd.read_parquet, url=url, data_dir=data_dir, filesystem_name="s3"
     )
+
+
+@icontract.ensure(lambda result: len(result) > 0)
+def _extract_rows_in_values(df: pd.DataFrame, values: List[str]):
+    where_rows_in_values = (
+        df["countyname"].astype("string").str.lower().isin(map(str.lower, values))
+    )
+    return df[where_rows_in_values].copy()
 
 
 def replace_not_stated_period_built_with_mode(stock: pd.DataFrame) -> pd.Series:
