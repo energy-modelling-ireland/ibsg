@@ -1,7 +1,7 @@
 ---
 name: Question
 about: Ask a question
-title: "[Q]"
+title: ''
 labels: question
 assignees: rdmolony
 
