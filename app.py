@@ -86,18 +86,18 @@ def main(
         help="""If a dwelling in registered in the 2016 has had a BER assessment fill
         the building with its corresponding properties, else leave empty""",
     )
+    selections["replace_not_stated"] = st.checkbox(
+        "Replace 'Not stated' period built with Mode?",
+        value=False,
+        help="""Cannot archetype buildings with unknown Period Built so they must be
+        inferred to estimate the properties of these buildings""",
+    )
     selections["archetype"] = st.checkbox(
         "Fill unknown buildings with 'small area | countyname | period built' archetypes?",
-        value=True,
+        value=False,
         help="""If >30 buildings of the same 'small area | period built' create an
         archetype, else do 'small area | period built', finally do 'period built'
         """,
-    )
-    selections["replace_not_stated"] = st.checkbox(
-        "Replace 'Not stated' period built with Mode?",
-        value=True,
-        help="""Cannot archetype buildings with unknown Period Built so they must be
-        inferred to estimate the properties of these buildings""",
     )
     selections["download_filetype"] = st.selectbox(
         "Download format?",
@@ -105,65 +105,44 @@ def main(
         help="You might need to install 7zip to unzip '.csv.gz' (see hints)",
     )
 
-    if selections["ber_granularity"] == "countyname":
-        postcode_bers_is_selected = st.button("Fetch Postcode BERs")
-        if postcode_bers_is_selected:
-            bers = postcodes.main(selections=selections, config=config)
-            selected_bers = _link_bers_to_census(
-                bers=bers, selections=selections, data_dir=data_dir, config=config
-            )
-            create_download_link(
-                selected_bers,
-                filename=f"countyname_bers_{datetime.date.today()}",
-                suffix=selections["download_filetype"],
-                data_dir=data_dir,
-            )
+    _generate_building_stock(selections=selections, data_dir=data_dir, config=config)
 
-    elif selections["ber_granularity"] == "small_area":
+
+def _generate_building_stock(
+    selections: Dict[str, Any], data_dir: Path, config: ConfigParser
+):
+    if selections["ber_granularity"] == "countyname":
+        is_generate_stock_selected = st.button("Fetch Postcode BERs")
+        if is_generate_stock_selected:
+            bers = postcodes.main(selections=selections, config=config)
+    else:
         small_area_bers_zipfile = st.file_uploader(
             "Upload Small Area BERs",
             type="zip",
         )
-        if small_area_bers_zipfile:
+        is_generate_stock_selected = bool(small_area_bers_zipfile)
+        if is_generate_stock_selected:
             bers = small_areas.main(
                 small_area_bers_zipfile, selections=selections, config=config
             )
-            selected_bers = _link_bers_to_census(
-                bers=bers, selections=selections, data_dir=data_dir, config=config
-            )
-            create_download_link(
-                selected_bers,
-                filename=f"small_area_bers_{datetime.date.today()}",
-                suffix=selections["download_filetype"],
-                data_dir=data_dir,
-            )
-
-
-def _link_bers_to_census(
-    bers: pd.DataFrame, selections: Dict[str, Any], data_dir: Path, config: ConfigParser
-):
-    if selections["census"] & selections["replace_not_stated"]:
-        with st.spinner("Linking to census ..."):
-            census_bers = census.main(bers, selections=selections, config=config)
-        with st.spinner("Filling unknown census buildings with archetypes..."):
-            archetyped_bers, archetypes = archetype.main(
-                census_bers, selections=selections, config=config
-            )
-        selected_bers = archetyped_bers
-        for name, data in archetypes.items():
-            create_download_link(
-                data,
-                filename=f"{name}_archetypes_{datetime.date.today()}",
-                suffix=".csv",
-                data_dir=data_dir,
-            )
-    elif selections["census"]:
+    if is_generate_stock_selected & selections["census"]:
         with st.spinner("Linking to census ..."):
             census_bers = census.main(bers, selections=selections)
         selected_bers = census_bers
-    else:
+        create_download_link(
+            selected_bers,
+            filename=f"bers_{datetime.date.today()}",
+            suffix=selections["download_filetype"],
+            data_dir=data_dir,
+        )
+    elif is_generate_stock_selected:
         selected_bers = bers
-    return selected_bers
+        create_download_link(
+            selected_bers,
+            filename=f"bers_{datetime.date.today()}",
+            suffix=selections["download_filetype"],
+            data_dir=data_dir,
+        )
 
 
 def create_download_link(df: pd.DataFrame, filename: str, suffix: str, data_dir: Path):
