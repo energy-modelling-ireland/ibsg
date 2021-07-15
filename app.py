@@ -86,7 +86,7 @@ def main(
     )
     selections["replace_not_stated"] = st.checkbox(
         "Replace 'Not stated' period built with Mode?",
-        value=False,
+        value=True,
         help="""Cannot archetype buildings with unknown Period Built so they must be
         inferred to estimate the properties of these buildings""",
     )
