@@ -126,7 +126,15 @@ def _generate_building_stock(
 ):
     bers = _get_bers(selections=selections, config=config)
     if bers is not None:
-        if selections["census"]:
+        if selections["census"] & selections["archetype"]:
+            with st.spinner("Linking to census ..."):
+                census_bers = census.main(bers, selections=selections, config=config)
+            with st.spinner("Filling unknown BERs with archetypes..."):
+                census_archetypes = archetype.main(
+                    bers=census_bers, selections=selections, config=config
+                )
+            selected_bers = census_archetypes
+        elif selections["census"]:
             with st.spinner("Linking to census ..."):
                 census_bers = census.main(bers, selections=selections, config=config)
             selected_bers = census_bers

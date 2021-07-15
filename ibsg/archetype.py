@@ -25,43 +25,25 @@ def main(
 ) -> Tuple[pd.DataFrame, Optional[Dict[str, pd.DataFrame]]]:
 
     sample_size = int(config["settings"]["sample_size"])
-    archetypes = {}
     if selections["ber_granularity"] == "countyname":
         granularity = "countyname"
-        exclude_columns = ["small_area", "id"]
     elif selections["ber_granularity"] == "small_area":
         granularity = "small_area"
-        exclude_columns = ["countyname", "id"]
     else:
         raise ValueError("Only countyname or small_area ber_granularity are supported")
-    archetypes[granularity] = _create_archetypes(
-        stock=bers,
-        archetype_name=f"{granularity}__period_built",
-        index_columns=[granularity, "period_built"],
-        exclude_columns=exclude_columns,
-        sample_size=sample_size,
-    )
-    archetypes["period_built"] = _create_archetypes(
-        stock=bers,
-        archetype_name="period_built",
-        index_columns=["period_built"],
-        exclude_columns=["small_area", "countyname", "id"],
-        sample_size=sample_size,
-    )
-    archetyped_bers = (
-        _flag_known_buildings(bers, on_column="dwelling_type")
-        .pipe(
-            _fillna_with_archetypes,
-            archetypes=archetypes[granularity],
-            archetype_columns=[granularity, "period_built"],
+    for archetype_columns in [[granularity, "period_built"], ["period_built"]]:
+        archetypes = _create_archetypes(
+            stock=bers,
+            archetype_name=str(archetype_columns),
+            index_columns=archetype_columns,
+            exclude_columns=["id"],
+            sample_size=sample_size,
         )
-        .pipe(
-            _fillna_with_archetypes,
-            archetypes=archetypes["period_built"],
-            archetype_columns=["period_built"],
+        archetyped_bers = _fillna_with_archetypes(
+            bers, archetypes=archetypes, archetype_columns=archetype_columns
         )
-    )
-    return archetyped_bers, archetypes
+
+    return archetyped_bers
 
 
 def _get_mode_or_first_occurence(srs: pd.Series) -> str:
@@ -116,11 +98,6 @@ def _create_archetypes(
         .reset_index()
         .assign(archetype=archetype_name)
     )
-
-
-def _flag_known_buildings(stock: pd.DataFrame, on_column: str) -> pd.DataFrame:
-    stock["archetype"] = stock[on_column].notnull().map({True: "none", False: np.nan})
-    return stock
 
 
 def _fillna_with_archetypes(

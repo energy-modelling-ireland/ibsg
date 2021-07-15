@@ -110,32 +110,6 @@ def test_create_archetypes():
     assert_frame_equal(output, expected_output)
 
 
-def test_flag_known_buildings():
-    stock = pd.DataFrame(
-        {
-            "dwelling_type": [
-                "Detached house",
-                "End of terrace house",
-                "Ground-floor apartment",
-            ],
-            "wall_uvalue": [1.77, 0.485, np.nan],
-        }
-    )
-    expected_output = pd.DataFrame(
-        {
-            "dwelling_type": [
-                "Detached house",
-                "End of terrace house",
-                "Ground-floor apartment",
-            ],
-            "wall_uvalue": [1.77, 0.485, np.nan],
-            "archetype": ["none", "none", np.nan],
-        }
-    )
-    output = archetype._flag_known_buildings(stock=stock, on_column="wall_uvalue")
-    assert_frame_equal(output, expected_output)
-
-
 def test_fillna_with_archetypes():
     stock = pd.DataFrame(
         {
