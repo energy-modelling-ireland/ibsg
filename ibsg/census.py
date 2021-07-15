@@ -23,7 +23,9 @@ def main(
     data_dir: Path = _DATA_DIR,
 ) -> Optional[pd.DataFrame]:
     raw_census = _load_census_buildings(
-        url=config["urls"]["census_buildings_2016"], data_dir=data_dir
+        url=config["urls"]["census_buildings_2016"],
+        data_dir=data_dir,
+        filesystem_name=config["filesystems"]["census_buildings_2016"],
     )
     filtered_census = _extract_rows_in_values(raw_census, selections["countyname"])
     if selections["replace_not_stated"]:
@@ -32,26 +34,25 @@ def main(
     else:
         census = filtered_census
     with st.spinner("Filling the 2016 census building stock with BERs..."):
-        if selections["ber_granularity"] == "countyname":
-            merge_columns = ["countyname", "period_built"]
-        elif selections["ber_granularity"] == "small_area":
-            merge_columns = ["small_area", "period_built"]
-        else:
-            raise ValueError(
-                "Only countyname or small_area ber_granularity are supported"
-            )
+        census_standardised = _standardise_census(census, selections["ber_granularity"])
+        bers_standardised = _standardise_bers(bers, selections["ber_granularity"])
         stock = _fill_census_with_bers(
-            stock=_add_merge_columns_to_census(census, merge_columns),
-            bers=_add_merge_columns_to_bers(bers, merge_columns),
-            merge_columns=merge_columns + ["id"],
+            census=census_standardised,
+            bers=bers_standardised,
+            ber_granularity=selections["ber_granularity"],
         )
     return stock
 
 
 @st.cache
-def _load_census_buildings(url: str, data_dir: Path) -> pd.DataFrame:
+def _load_census_buildings(
+    url: str, data_dir: Path, filesystem_name: str
+) -> pd.DataFrame:
     return io.load(
-        read=pd.read_parquet, url=url, data_dir=data_dir, filesystem_name="s3"
+        read=pd.read_parquet,
+        url=url,
+        data_dir=data_dir,
+        filesystem_name=filesystem_name,
     )
 
 
@@ -80,14 +81,20 @@ def replace_not_stated_period_built_with_mode(stock: pd.DataFrame) -> pd.Series:
 
 
 def _add_merge_columns_to_census(
-    stock: pd.DataFrame, merge_columns: List[str]
+    stock: pd.DataFrame, ber_granularity: str
 ) -> pd.DataFrame:
-    stock["id"] = clean.get_group_id(stock, columns=merge_columns)
+    on_columns = [ber_granularity, "period_built"]
+    stock["id"] = clean.get_group_id(stock, columns=on_columns)
     return stock
 
 
+def _standardise_census(census: pd.DataFrame, ber_granularity: str) -> pd.DataFrame:
+    census[ber_granularity] = census[ber_granularity].str.lower()
+    return _add_merge_columns_to_census(census, ber_granularity)
+
+
 def _add_merge_columns_to_bers(
-    bers: pd.DataFrame, merge_columns: List[str]
+    bers: pd.DataFrame, ber_granularity: str
 ) -> pd.DataFrame:
     bers["period_built"] = pd.cut(
         bers["year_of_construction"],
@@ -115,17 +122,27 @@ def _add_merge_columns_to_bers(
             "11L",
         ],
     )
-    bers["id"] = clean.get_group_id(bers, columns=merge_columns)
+    on_columns = [ber_granularity, "period_built"]
+    bers["id"] = clean.get_group_id(bers, columns=on_columns)
     return bers
 
 
+def _standardise_bers(bers: pd.DataFrame, ber_granularity: str) -> pd.DataFrame:
+    bers[ber_granularity] = bers[ber_granularity].str.lower()
+    return _add_merge_columns_to_bers(bers, ber_granularity)
+
+
 def _fill_census_with_bers(
-    stock: pd.DataFrame, bers: pd.DataFrame, merge_columns: List[str]
+    census: pd.DataFrame,
+    bers: pd.DataFrame,
+    ber_granularity: str,
 ) -> pd.DataFrame:
-    before_2016 = stock.merge(
-        bers.query("year_of_construction < 2016"),
+    merge_columns = [ber_granularity, "period_built", "id"]
+    before_2016 = pd.merge(
+        left=census,
+        right=bers.query("year_of_construction < 2016"),
         on=merge_columns,
-        how="left",
+        how="outer",
     )
     after_2016 = bers.query("year_of_construction >= 2016")
     return pd.concat([before_2016, after_2016])

@@ -22,8 +22,15 @@ def config(shared_datadir) -> ConfigParser:
     config["urls"]["census_buildings_2016"] = str(
         shared_datadir / "sample_building_ages_2016.parquet"
     )
+    config["filesystems"] = {}
+    config["filesystems"]["census_buildings_2016"] = "file"
     config["settings"] = {}
     config["settings"]["sample_size"] = "1"
+
+    config["small_area_ids"] = {}
+    config["small_area_ids"]["url"] = str(shared_datadir / "small_area_ids_2016.csv")
+    config["small_area_ids"]["filesystem"] = "file"
+
     return config
 
 
