@@ -1,3 +1,4 @@
+from configparser import ConfigParser
 import datetime
 from pathlib import Path
 from typing import Any
@@ -8,12 +9,29 @@ import streamlit as st
 
 from ibsg import archetype
 from ibsg import census
+from ibsg import CONFIG
 from ibsg import DEFAULTS
 from ibsg import postcodes
 from ibsg import small_areas
+from ibsg import _DATA_DIR
+from ibsg import _LOCAL
+
+# workaround from streamlit/streamlit#400
+STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
+
+if _LOCAL:
+    DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
+    if not DOWNLOADS_PATH.is_dir():
+        DOWNLOADS_PATH.mkdir()
+else:
+    DOWNLOADS_PATH = _DATA_DIR
 
 
-def main(defaults: Dict[str, Any] = DEFAULTS):
+def main(
+    data_dir: Path = DOWNLOADS_PATH,
+    config: ConfigParser = CONFIG,
+    defaults: Dict[str, Any] = DEFAULTS,
+):
     st.markdown(
         """
         # 🏠 Irish Building Stock Generator 🏠
@@ -90,58 +108,67 @@ def main(defaults: Dict[str, Any] = DEFAULTS):
     if selections["ber_granularity"] == "countyname":
         postcode_bers_is_selected = st.button("Fetch Postcode BERs")
         if postcode_bers_is_selected:
-            _generate_countyname_building_stock(selections)
+            bers = postcodes.main(selections=selections, config=config)
+            selected_bers = _link_bers_to_census(
+                bers=bers, selections=selections, data_dir=data_dir, config=config
+            )
+            create_download_link(
+                selected_bers,
+                filename=f"countyname_bers_{datetime.date.today()}",
+                suffix=selections["download_filetype"],
+                data_dir=data_dir,
+            )
 
     elif selections["ber_granularity"] == "small_area":
         small_area_bers_zipfile = st.file_uploader(
             "Upload Small Area BERs",
             type="zip",
         )
-        small_area_bers_is_selected = bool(small_area_bers_zipfile)
-        if small_area_bers_is_selected:
-            _generate_small_area_building_stock(
-                selections, zipfile=small_area_bers_zipfile
+        if small_area_bers_zipfile:
+            bers = small_areas.main(
+                small_area_bers_zipfile, selections=selections, config=config
+            )
+            selected_bers = _link_bers_to_census(
+                bers=bers, selections=selections, data_dir=data_dir, config=config
+            )
+            create_download_link(
+                selected_bers,
+                filename=f"small_area_bers_{datetime.date.today()}",
+                suffix=selections["download_filetype"],
+                data_dir=data_dir,
             )
 
 
-def _generate_countyname_building_stock(selections):
-    st.info("'Link to 2016 census?' not yet implemented!")
-    st.info("'Fill unknown buildings with archetypes?' not yet implemented!")
-    postcode_bers = postcodes.main(selections=selections)
-    create_download_link(
-        postcode_bers,
-        filename=f"postcode_bers_{datetime.date.today()}",
-        suffix=selections["download_filetype"],
-    )
-
-
-def _generate_small_area_building_stock(selections, zipfile):
-    small_area_bers = small_areas.main(zipfile, selections=selections)
-    if selections["census"]:
-        census_bers = census.main(small_area_bers, selections=selections)
-    archetyped_bers, archetypes = archetype.main(census_bers, selections=selections)
-    create_download_link(
-        archetyped_bers,
-        filename=f"small_area_bers_{datetime.date.today()}",
-        suffix=selections["download_filetype"],
-    )
-    if archetypes:
+def _link_bers_to_census(
+    bers: pd.DataFrame, selections: Dict[str, Any], data_dir: Path, config: ConfigParser
+):
+    if selections["census"] & selections["replace_not_stated"]:
+        with st.spinner("Linking to census ..."):
+            census_bers = census.main(bers, selections=selections, config=config)
+        with st.spinner("Filling unknown census buildings with archetypes..."):
+            archetyped_bers, archetypes = archetype.main(
+                census_bers, selections=selections, config=config
+            )
+        selected_bers = archetyped_bers
         for name, data in archetypes.items():
             create_download_link(
                 data,
                 filename=f"{name}_archetypes_{datetime.date.today()}",
                 suffix=".csv",
+                data_dir=data_dir,
             )
+    elif selections["census"]:
+        with st.spinner("Linking to census ..."):
+            census_bers = census.main(bers, selections=selections)
+        selected_bers = census_bers
+    else:
+        selected_bers = bers
+    return selected_bers
 
 
-def create_download_link(df: pd.DataFrame, filename: str, suffix: str):
-    # workaround from streamlit/streamlit#400
+def create_download_link(df: pd.DataFrame, filename: str, suffix: str, data_dir: Path):
     with st.spinner(f"Saving '{filename}{suffix}' to disk..."):
-        STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
-        DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
-        if not DOWNLOADS_PATH.is_dir():
-            DOWNLOADS_PATH.mkdir()
-        filepath = (DOWNLOADS_PATH / filename).with_suffix(suffix)
+        filepath = (data_dir / filename).with_suffix(suffix)
         if suffix in [".csv", ".csv.gz"]:
             df.to_csv(filepath, index=False)
         elif suffix == ".parquet":
