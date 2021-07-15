@@ -19,12 +19,10 @@ from ibsg import _LOCAL
 # workaround from streamlit/streamlit#400
 STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
 
-if _LOCAL:
-    DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
-    if not DOWNLOADS_PATH.is_dir():
-        DOWNLOADS_PATH.mkdir()
-else:
-    DOWNLOADS_PATH = _DATA_DIR
+
+DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
+if not DOWNLOADS_PATH.is_dir():
+    DOWNLOADS_PATH.mkdir()
 
 
 def main(
