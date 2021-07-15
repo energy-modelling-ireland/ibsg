@@ -67,3 +67,4 @@ data/*
 .vscode/
 gooey_config.json
 .env
+.streamlit/
