@@ -106,38 +106,36 @@ def main(
     _generate_building_stock(selections=selections, data_dir=data_dir, config=config)
 
 
-def _generate_building_stock(
-    selections: Dict[str, Any], data_dir: Path, config: ConfigParser
-):
+def _get_bers(selections: Dict[str, Any], config: ConfigParser):
     if selections["ber_granularity"] == "countyname":
-        is_generate_stock_selected = st.button("Fetch Postcode BERs")
-        if is_generate_stock_selected:
-            bers = postcodes.main(selections=selections, config=config)
+        is_postcode_bers_selected = st.button("Fetch Postcode BERs")
+        if is_postcode_bers_selected:
+            return postcodes.main(selections=selections, config=config)
     else:
         small_area_bers_zipfile = st.file_uploader(
             "Upload Small Area BERs",
             type="zip",
         )
-        is_generate_stock_selected = bool(small_area_bers_zipfile)
-        if is_generate_stock_selected:
-            bers = small_areas.main(
+        if small_area_bers_zipfile:
+            return small_areas.main(
                 small_area_bers_zipfile, selections=selections, config=config
             )
-    if is_generate_stock_selected & selections["census"]:
-        with st.spinner("Linking to census ..."):
-            census_bers = census.main(bers, selections=selections)
-        selected_bers = census_bers
+
+
+def _generate_building_stock(
+    selections: Dict[str, Any], data_dir: Path, config: ConfigParser
+):
+    bers = _get_bers(selections=selections, config=config)
+    if bers is not None:
+        if selections["census"]:
+            with st.spinner("Linking to census ..."):
+                census_bers = census.main(bers, selections=selections)
+            selected_bers = census_bers
+        else:
+            selected_bers = bers
         create_download_link(
             selected_bers,
-            filename=f"bers_{datetime.date.today()}",
-            suffix=selections["download_filetype"],
-            data_dir=data_dir,
-        )
-    elif is_generate_stock_selected:
-        selected_bers = bers
-        create_download_link(
-            selected_bers,
-            filename=f"bers_{datetime.date.today()}",
+            filename=f"{selections['ber_granularity']}_bers_{datetime.date.today()}",
             suffix=selections["download_filetype"],
             data_dir=data_dir,
         )
