@@ -1,6 +1,6 @@
 # Irish Building Stock Generator (IBSG)
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/rdmolony/ibsg/main/app.py)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/energy-modelling-ireland/ibsg/main/app.py)
 
 Generate a standardised building stock at postcode or small area level in your browser.
 
