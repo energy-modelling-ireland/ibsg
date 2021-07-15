@@ -12,10 +12,8 @@ import pandas as pd
 import streamlit as st
 
 from ibsg import clean
-from ibsg.fetch import fetch
 from ibsg import filter
 from ibsg import io
-from ibsg import _LOCAL
 from ibsg import _DATA_DIR
 
 from ibsg import DEFAULTS
@@ -27,6 +25,7 @@ def main(
     selections: Dict[str, Any],
     defaults: Dict[str, Any] = DEFAULTS,
     config: ConfigParser = CONFIG,
+    data_dir: Path = _DATA_DIR,
 ) -> pd.DataFrame:
     ## Load
     raw_sa_bers = _load_small_area_bers(zipped_csv_of_bers)
