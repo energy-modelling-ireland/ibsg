@@ -3,7 +3,6 @@ from typing import List
 import pandas as pd
 import icontract
 import streamlit as st
-from typeguard import typechecked
 
 
 def log_percentage_lost(f):
@@ -18,7 +17,6 @@ def log_percentage_lost(f):
     return inner
 
 
-@typechecked
 @log_percentage_lost
 @icontract.ensure(lambda result: len(result) != 0)
 def get_rows_meeting_condition(
@@ -34,7 +32,6 @@ def get_rows_meeting_condition(
     return filtered_df
 
 
-@typechecked
 @log_percentage_lost
 @icontract.ensure(lambda result: len(result) != 0)
 def get_rows_equal_to_values(
