@@ -138,9 +138,19 @@ def _fill_census_with_bers(
     ber_granularity: str,
 ) -> pd.DataFrame:
     merge_columns = [ber_granularity, "period_built", "id"]
+
+    # Small area linked postcodes are more reliable than user inputted ones
+    # & if don't drop these end up with countyname_x and countyname_y columns on merge!
+    if ber_granularity == "small_area":
+        ber_columns_to_drop = ["countyname"]
+    else:
+        ber_columns_to_drop = []
+
     before_2016 = pd.merge(
         left=census,
-        right=bers.query("year_of_construction < 2016"),
+        right=bers.drop(columns=ber_columns_to_drop).query(
+            "year_of_construction < 2016"
+        ),
         on=merge_columns,
         how="outer",
     )
