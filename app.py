@@ -129,7 +129,7 @@ def _generate_building_stock(
     if bers is not None:
         if selections["census"]:
             with st.spinner("Linking to census ..."):
-                census_bers = census.main(bers, selections=selections)
+                census_bers = census.main(bers, selections=selections, config=config)
             selected_bers = census_bers
         else:
             selected_bers = bers
