@@ -23,55 +23,44 @@ def main(
     selections: Dict[str, Any],
     config: ConfigParser = CONFIG,
 ) -> Tuple[pd.DataFrame, Optional[Dict[str, pd.DataFrame]]]:
-    if selections["census"] and selections["archetype"]:
-        with st.spinner(
-            "Creating archetypes on small_area, countyname & period_built..."
-        ):
-            sample_size = int(config["settings"]["sample_size"])
-            archetypes = {}
-            archetypes["small_area"] = _create_archetypes(
-                stock=bers,
-                archetype_name="small_area__period_built",
-                index_columns=["small_area", "period_built"],
-                exclude_columns=["countyname", "id"],
-                sample_size=sample_size,
-            )
-            archetypes["countyname"] = _create_archetypes(
-                stock=bers,
-                archetype_name="countyname__period_built",
-                index_columns=["countyname", "period_built"],
-                exclude_columns=["small_area", "id"],
-                sample_size=sample_size,
-            )
-            archetypes["period_built"] = _create_archetypes(
-                stock=bers,
-                archetype_name="small_area__period_built",
-                index_columns=["period_built"],
-                exclude_columns=["small_area", "id"],
-                sample_size=sample_size,
-            )
-        with st.spinner("Filling unknown buildings with archetypes..."):
-            archetyped_bers = (
-                _flag_known_buildings(bers, on_column="dwelling_type")
-                .pipe(
-                    _fillna_with_archetypes,
-                    archetypes=archetypes["small_area"],
-                    archetype_columns=["small_area", "period_built"],
-                )
-                .pipe(
-                    _fillna_with_archetypes,
-                    archetypes=archetypes["countyname"],
-                    archetype_columns=["countyname", "period_built"],
-                )
-                .pipe(
-                    _fillna_with_archetypes,
-                    archetypes=archetypes["period_built"],
-                    archetype_columns=["period_built"],
-                )
-            )
+
+    sample_size = int(config["settings"]["sample_size"])
+    archetypes = {}
+    if selections["ber_granularity"] == "countyname":
+        granularity = "countyname"
+        exclude_columns = ["small_area", "id"]
+    elif selections["ber_granularity"] == "small_area":
+        granularity = "small_area"
+        exclude_columns = ["countyname", "id"]
     else:
-        archetyped_bers = bers
-        archetypes = None
+        raise ValueError("Only countyname or small_area ber_granularity are supported")
+    archetypes[granularity] = _create_archetypes(
+        stock=bers,
+        archetype_name=f"{granularity}__period_built",
+        index_columns=[granularity, "period_built"],
+        exclude_columns=exclude_columns,
+        sample_size=sample_size,
+    )
+    archetypes["period_built"] = _create_archetypes(
+        stock=bers,
+        archetype_name="period_built",
+        index_columns=["period_built"],
+        exclude_columns=["small_area", "countyname", "id"],
+        sample_size=sample_size,
+    )
+    archetyped_bers = (
+        _flag_known_buildings(bers, on_column="dwelling_type")
+        .pipe(
+            _fillna_with_archetypes,
+            archetypes=archetypes[granularity],
+            archetype_columns=[granularity, "period_built"],
+        )
+        .pipe(
+            _fillna_with_archetypes,
+            archetypes=archetypes["period_built"],
+            archetype_columns=["period_built"],
+        )
+    )
     return archetyped_bers, archetypes
 
 
