@@ -1,5 +1,6 @@
 from configparser import ConfigParser
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
@@ -29,7 +30,11 @@ def main(
 ) -> pd.DataFrame:
     ## Load
     raw_sa_bers = _load_small_area_bers(zipped_csv_of_bers)
-    sa_ids_2016 = _load_2016_small_area_ids(url=config["urls"]["small_area_ids_2016"])
+    sa_ids_2016 = _load_2016_small_area_ids(
+        url=config["small_area_ids"]["url"],
+        data_dir=data_dir,
+        filesystem_name=config["small_area_ids"]["filesystem"],
+    )
 
     with st.form("Apply Filters"):
         ## Filter
@@ -68,16 +73,19 @@ def _load_small_area_bers(zipped_csv_of_bers: BytesIO) -> pd.DataFrame:
 
 
 @st.cache
-def _load_2016_small_area_ids(url: str) -> List[str]:
-    filepath = fetch(
-        url,
-        _LOCAL,
-        _DATA_DIR,
+def _load_2016_small_area_ids(
+    url: str, data_dir: Path, filesystem_name: str
+) -> List[str]:
+    return (
+        io.load(
+            read=pd.read_csv,
+            url=url,
+            data_dir=data_dir,
+            filesystem_name=filesystem_name,
+        )
+        .squeeze()
+        .to_list()
     )
-    return pd.read_csv(
-        filepath,
-        squeeze=True,
-    ).to_list()
 
 
 def _filter_small_area_bers(
