@@ -17,11 +17,14 @@ from ibsg import _DATA_DIR
 
 # workaround from streamlit/streamlit#400
 STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
-
-
 DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
 if not DOWNLOADS_PATH.is_dir():
     DOWNLOADS_PATH.mkdir()
+
+ONLY_SUPPORTED_ON_LOCAL = """
+    This feature is currently not supported as it results in ibsg exceeding streamlit's
+    free-tier resource limits
+    """
 
 
 def main(
@@ -127,13 +130,18 @@ def _generate_building_stock(
     bers = _get_bers(selections=selections, config=config)
     if bers is not None:
         if selections["census"] & selections["archetype"]:
-            with st.spinner("Linking to census ..."):
-                census_bers = census.main(bers, selections=selections, config=config)
-            with st.spinner("Filling unknown BERs with archetypes..."):
-                census_archetypes = archetype.main(
-                    bers=census_bers, selections=selections, config=config
-                )
-            selected_bers = census_archetypes
+            if st.secrets["IS_LOCAL"]:
+                with st.spinner("Linking to census ..."):
+                    census_bers = census.main(
+                        bers, selections=selections, config=config
+                    )
+                with st.spinner("Filling unknown census buildings with archetypes..."):
+                    archetyped_bers, archetypes = archetype.main(
+                        census_bers, selections=selections, config=config
+                    )
+                selected_bers = archetyped_bers
+            else:
+                st.error(ONLY_SUPPORTED_ON_LOCAL)
         elif selections["census"]:
             with st.spinner("Linking to census ..."):
                 census_bers = census.main(bers, selections=selections, config=config)
