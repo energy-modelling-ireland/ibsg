@@ -3,4 +3,3 @@ icontract
 streamlit
 pandas
 pyarrow
-python-dotenv

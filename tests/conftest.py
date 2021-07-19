@@ -11,25 +11,23 @@ from ibsg import small_areas
 @pytest.fixture
 def config(shared_datadir) -> ConfigParser:
     config = ConfigParser()
-    config["urls"] = {}
-    config["urls"]["small_area_ids_2016"] = str(
-        shared_datadir / "small_area_ids_2016.csv"
-    )
-    config["urls"]["small_area_statistics_2016"] = str(
-        shared_datadir / "SAPS2016_SA2017.csv"
-    )
-    config["urls"]["postcode_bers"] = str(shared_datadir / "BERPublicsearch.parquet")
-    config["urls"]["census_buildings_2016"] = str(
-        shared_datadir / "sample_building_ages_2016.parquet"
-    )
-    config["filesystems"] = {}
-    config["filesystems"]["census_buildings_2016"] = "file"
-    config["settings"] = {}
-    config["settings"]["sample_size"] = "1"
 
     config["small_area_ids"] = {}
     config["small_area_ids"]["url"] = str(shared_datadir / "small_area_ids_2016.csv")
     config["small_area_ids"]["filesystem"] = "file"
+
+    config["postcode_bers"] = {}
+    config["postcode_bers"]["url"] = str(shared_datadir / "BERPublicsearch.parquet")
+    config["postcode_bers"]["filesystem"] = "file"
+
+    config["census_buildings"] = {}
+    config["census_buildings"]["url"] = str(
+        shared_datadir / "sample_building_ages_2016.parquet"
+    )
+    config["census_buildings"]["filesystem"] = "file"
+
+    config["settings"] = {}
+    config["settings"]["sample_size"] = "1"
 
     return config
 

@@ -14,7 +14,6 @@ from ibsg import DEFAULTS
 from ibsg import postcodes
 from ibsg import small_areas
 from ibsg import _DATA_DIR
-from ibsg import _LOCAL
 
 # workaround from streamlit/streamlit#400
 STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"

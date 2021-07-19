@@ -23,9 +23,9 @@ def main(
     data_dir: Path = _DATA_DIR,
 ) -> Optional[pd.DataFrame]:
     raw_census = _load_census_buildings(
-        url=config["urls"]["census_buildings_2016"],
+        url=config["census_buildings"]["url"],
         data_dir=data_dir,
-        filesystem_name=config["filesystems"]["census_buildings_2016"],
+        filesystem_name=config["census_buildings"]["filesystem"],
     )
     filtered_census = _extract_rows_in_values(raw_census, selections["countyname"])
     if selections["replace_not_stated"]:

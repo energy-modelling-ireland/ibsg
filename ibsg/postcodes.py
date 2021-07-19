@@ -1,6 +1,8 @@
 from collections import defaultdict
 from configparser import ConfigParser
+from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import Dict
 
 import pandas as pd
@@ -9,9 +11,8 @@ import streamlit as st
 from ibsg import clean
 from ibsg import CONFIG
 from ibsg import DEFAULTS
-from ibsg.fetch import fetch
 from ibsg import filter
-from ibsg import _LOCAL
+from ibsg import io
 from ibsg import _DATA_DIR
 
 
@@ -19,9 +20,15 @@ def main(
     selections: Dict[str, Any],
     defaults: Dict[str, Any] = DEFAULTS,
     config: ConfigParser = CONFIG,
+    data_dir: Path = _DATA_DIR,
 ) -> pd.DataFrame:
     ## Fetch
-    postcode_bers_raw = _load_postcode_bers(config["urls"]["postcode_bers"])
+    postcode_bers_raw = _load_postcode_bers(
+        read=pd.read_parquet,
+        url=config["postcode_bers"]["url"],
+        data_dir=data_dir,
+        filesystem_name=config["postcode_bers"]["filesystem"],
+    )
 
     with st.form("Apply Filters"):
         ## Filter
@@ -40,9 +47,12 @@ def main(
 
 
 @st.cache
-def _load_postcode_bers(url: str) -> pd.DataFrame:
-    filepath = fetch(url, _LOCAL, _DATA_DIR)
-    return pd.read_parquet(filepath)
+def _load_postcode_bers(
+    read: Callable, url: str, data_dir: Path, filesystem_name: str
+) -> pd.DataFrame:
+    return io.load(
+        read=read, url=url, data_dir=data_dir, filesystem_name=filesystem_name
+    )
 
 
 def _clean_postcode_bers(bers: pd.DataFrame) -> pd.DataFrame:
