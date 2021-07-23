@@ -60,6 +60,22 @@ def get_rows_equal_to_values(
     return filtered_df
 
 
+def get_rows_containing_substrings(
+    df: pd.DataFrame,
+    column_name: str,
+    selected_substrings: List[str],
+    all_substrings: List[str],
+) -> pd.DataFrame:
+    if selected_substrings == all_substrings:
+        selected_df = df
+    else:
+        substrings_to_search = "|".join(selected_substrings)
+        selected_df = df[
+            df[column_name].str.title().str.contains(substrings_to_search, regex=True)
+        ]
+    return selected_df
+
+
 def get_group_id(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
     return df.groupby(columns).cumcount().apply(lambda x: x + 1)
 

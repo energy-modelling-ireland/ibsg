@@ -27,22 +27,20 @@ def generate_building_stock(
             dtype=defaults["small_areas"]["dtype"],
             mappings=defaults["small_areas"]["mappings"],
             filepath=data_dir / config["small_area_bers"]["filename"],
-        ).pipe(
-            _filter_bers,
-            selected_filters=selections["filters"],
-            bounds=selections["bounds"],
-        )
+        ).pipe(_filter_bers, selections=selections, defaults=defaults)
+
     else:
-        fs = fsspec.filesystem(config["postcode_bers"]["filesystem"])
-        with fs.open(
-            config["postcode_bers"]["url"],
-            cache_storage=data_dir / config["postcode_bers"]["filename"],
-        ) as f:
-            bers = pd.read_parquet(f).pipe(
-                _filter_bers,
-                selected_filters=selections["filters"],
-                bounds=selections["bounds"],
-            )
+        bers = _load_postcode_bers(
+            url=config["postcode_bers"]["url"],
+            filepath=data_dir / config["postcode_bers"]["filename"],
+        ).pipe(_filter_bers, selections=selections, defaults=defaults)
+
+
+def _load_postcode_bers(url: str, filepath: Path):
+    if not filepath.exists():
+        with fsspec.open(url) as f:
+            pd.read_parquet(f).to_parquet(filepath)
+    return pd.read_parquet(filepath)
 
 
 def _load_small_area_bers(
@@ -57,6 +55,22 @@ def _load_small_area_bers(
 
 
 def _filter_bers(
+    raw_bers: pd.DataFrame, selections: Dict[str, Any], defaults: Dict[str, Any]
+) -> pd.DataFrame:
+    selected_bers = clean.get_rows_containing_substrings(
+        df=raw_bers,
+        column_name="countyname",
+        selected_substrings=selections["countyname"],
+        all_substrings=defaults["countyname"],
+    )
+    return _remove_erroneous_bers(
+        bers=selected_bers,
+        selected_filters=selections["filters"],
+        bounds=selections["bounds"],
+    )
+
+
+def _remove_erroneous_bers(
     bers: pd.DataFrame, selected_filters: List[str], bounds: Dict[str, Dict[str, int]]
 ) -> pd.DataFrame:
     return (
