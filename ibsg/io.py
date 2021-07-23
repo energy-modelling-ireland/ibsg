@@ -2,7 +2,9 @@ from io import BytesIO
 from pathlib import Path
 from typing import Callable
 from typing import Dict
+from zipfile import ZipFile
 
+import icontract
 import fsspec
 import pandas as pd
 
@@ -33,3 +35,25 @@ def load(read: Callable, url: str, data_dir: Path, filesystem_name: str):
     else:
         df = read(filepath)
     return df
+
+
+@icontract.require(
+    lambda zipped_csv: len([f for f in ZipFile(zipped_csv).namelist() if "csv" in f])
+    == 1
+)
+def convert_zipped_csv_to_parquet(
+    zipped_csv: BytesIO,
+    dtype: Dict[str, str],
+    mappings: Dict[str, str],
+    filepath: Path,
+) -> pd.DataFrame:
+    zf = ZipFile(zipped_csv)
+    filename = [f for f in zf.namelist() if "csv" in f][0]
+    df = pd.read_csv(
+        zf.open(filename),
+        dtype=dtype,
+        encoding="latin-1",
+        low_memory=False,
+        usecols=list(dtype.keys()),
+    ).rename(columns=mappings)
+    df.to_parquet(filepath)

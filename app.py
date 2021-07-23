@@ -7,16 +7,12 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
-import pandas as pd
 import streamlit as st
 
-from ibsg import archetype
-from ibsg import census
 from ibsg import CONFIG
-from ibsg import DEFAULTS
-from ibsg import postcodes
-from ibsg import small_areas
 from ibsg import _DATA_DIR
+from ibsg import DEFAULTS
+from ibsg.main import generate_building_stock
 
 # workaround from streamlit/streamlit#400
 STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
@@ -24,14 +20,9 @@ DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
 if not DOWNLOADS_PATH.is_dir():
     DOWNLOADS_PATH.mkdir()
 
-ONLY_SUPPORTED_ON_LOCAL = """
-    This feature is currently not supported as it results in ibsg exceeding streamlit's
-    free-tier resource limits
-    """
-
 
 def main(
-    data_dir: Path = DOWNLOADS_PATH,
+    data_dir: Path = _DATA_DIR,
     config: ConfigParser = CONFIG,
     defaults: Dict[str, Any] = DEFAULTS,
 ):
@@ -76,6 +67,11 @@ def main(
         'extent to which a larger entity is subdivided. For example, a yard broken into
         inches has finer granularity than a yard broken into feet.'""",
     )
+    if selections["ber_granularity"] == "small_area":
+        selections["small_area_bers"] = st.file_uploader(
+            "Upload Small Area BERs",
+            type="zip",
+        )
     selections["countyname"] = st.multiselect(
         f"Select countyname",
         options=defaults["countyname"],
@@ -108,7 +104,8 @@ def main(
         options=[".csv.gz", ".parquet"],
         help="You might need to install 7zip to unzip '.csv.gz' (see hints)",
     )
-    _generate_building_stock(selections=selections, data_dir=data_dir, config=config)
+    if st.button("Generate Building Stock?"):
+        generate_building_stock(selections=selections, data_dir=data_dir, config=config)
 
 
 def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
@@ -182,66 +179,6 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
                 ),
             },
         }
-
-
-def _get_bers(selections: Dict[str, Any], config: ConfigParser):
-    if selections["ber_granularity"] == "countyname":
-        is_postcode_bers_selected = st.button("Fetch Postcode BERs")
-        if is_postcode_bers_selected:
-            return postcodes.main(selections=selections, config=config)
-    else:
-        small_area_bers_zipfile = st.file_uploader(
-            "Upload Small Area BERs",
-            type="zip",
-        )
-        if small_area_bers_zipfile:
-            return small_areas.main(
-                small_area_bers_zipfile, selections=selections, config=config
-            )
-
-
-def _generate_building_stock(
-    selections: Dict[str, Any], data_dir: Path, config: ConfigParser
-):
-    bers = _get_bers(selections=selections, config=config)
-    if bers is not None:
-        if selections["census"] & selections["archetype"]:
-            if st.secrets["IS_LOCAL"]:
-                with st.spinner("Linking to census ..."):
-                    census_bers = census.main(
-                        bers, selections=selections, config=config
-                    )
-                with st.spinner("Filling unknown census buildings with archetypes..."):
-                    archetyped_bers = archetype.main(
-                        census_bers, selections=selections, config=config
-                    )
-                selected_bers = archetyped_bers
-            else:
-                st.error(ONLY_SUPPORTED_ON_LOCAL)
-        elif selections["census"]:
-            with st.spinner("Linking to census ..."):
-                census_bers = census.main(bers, selections=selections, config=config)
-            selected_bers = census_bers
-        else:
-            selected_bers = bers
-        create_download_link(
-            selected_bers,
-            filename=f"{selections['ber_granularity']}_bers_{datetime.date.today()}",
-            suffix=selections["download_filetype"],
-            data_dir=data_dir,
-        )
-
-
-def create_download_link(df: pd.DataFrame, filename: str, suffix: str, data_dir: Path):
-    with st.spinner(f"Saving '{filename}{suffix}' to disk..."):
-        filepath = (data_dir / filename).with_suffix(suffix)
-        if suffix in [".csv", ".csv.gz"]:
-            df.to_csv(filepath, index=False)
-        elif suffix == ".parquet":
-            df.to_parquet(filepath)
-        else:
-            st.error(f"{suffix} is not currently supported!")
-        st.markdown(f"[{filepath.name}](downloads/{filepath.name})")
 
 
 if __name__ == "__main__":
