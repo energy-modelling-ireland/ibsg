@@ -1,8 +1,11 @@
+from logging import warning
 from typing import List
+import warnings
 
 import pandas as pd
 import icontract
 import streamlit as st
+from streamlit import report_thread
 
 
 def log_percentage_lost(f):
@@ -26,7 +29,11 @@ def get_rows_meeting_condition(
     condition: str,
 ) -> pd.DataFrame:
     if filter_name in selected_filters:
-        filtered_df = df.query(condition)
+        try:
+            filtered_df = df.query(condition)
+        except:
+            _warn(f"Column called in {condition} does not exist")
+            filtered_df = df
     else:
         filtered_df = df
     return filtered_df
@@ -42,12 +49,40 @@ def get_rows_equal_to_values(
     values: List[str],
 ) -> pd.DataFrame:
     if filter_name in selected_filters:
-        # values & column must be of same type or query will be empty!
-        filtered_df = df[df[on_column].astype("string").isin(values)]
+        try:
+            # values & column must be of same type or query will be empty!
+            filtered_df = df[df[on_column].astype("string").isin(values)]
+        except:
+            _warn(f"Column '{on_column}'' does not exist")
+            filtered_df = df
     else:
         filtered_df = df
     return filtered_df
 
 
+def get_rows_containing_substrings(
+    df: pd.DataFrame,
+    column_name: str,
+    selected_substrings: List[str],
+    all_substrings: List[str],
+) -> pd.DataFrame:
+    if selected_substrings == all_substrings:
+        selected_df = df
+    else:
+        substrings_to_search = "|".join(map(str.lower, selected_substrings))
+        selected_df = df[
+            df[column_name].str.lower().str.contains(substrings_to_search, regex=True)
+        ]
+    return selected_df
+
+
 def get_group_id(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
     return df.groupby(columns).cumcount().apply(lambda x: x + 1)
+
+
+def _warn(body: str) -> None:
+    is_streamlit_thread = report_thread.get_report_ctx()
+    if is_streamlit_thread:
+        return st.warning(body)
+    else:
+        warnings.warn(body)

@@ -96,43 +96,17 @@ def test_create_archetypes():
                 "Heating Oil                   ",
                 "Electricity                   ",
             ],
-            "sample_size": [5, 2, 2],
-            "archetype": 3 * ["dwelling_type"],
+            "sample_size_['dwelling_type']": [5, 2, 2],
+            "archetype": 3 * ["['dwelling_type']"],
         }
     )
     output = archetype._create_archetypes(
         stock=stock,
-        archetype_name="dwelling_type",
+        archetype_name="['dwelling_type']",
         index_columns=["dwelling_type"],
         exclude_columns=["countyname"],
         sample_size=1,
     )
-    assert_frame_equal(output, expected_output)
-
-
-def test_flag_known_buildings():
-    stock = pd.DataFrame(
-        {
-            "dwelling_type": [
-                "Detached house",
-                "End of terrace house",
-                "Ground-floor apartment",
-            ],
-            "wall_uvalue": [1.77, 0.485, np.nan],
-        }
-    )
-    expected_output = pd.DataFrame(
-        {
-            "dwelling_type": [
-                "Detached house",
-                "End of terrace house",
-                "Ground-floor apartment",
-            ],
-            "wall_uvalue": [1.77, 0.485, np.nan],
-            "archetype": ["none", "none", np.nan],
-        }
-    )
-    output = archetype._flag_known_buildings(stock=stock, on_column="wall_uvalue")
     assert_frame_equal(output, expected_output)
 
 
@@ -178,23 +152,6 @@ def test_fillna_with_archetypes():
             "archetype": [np.nan] + 9 * ["none"],
         }
     )
-    archetypes = pd.DataFrame(
-        {
-            "dwelling_type": [
-                "Detached house",
-                "End of terrace house",
-                "Ground-floor apartment",
-            ],
-            "wall_uvalue": [1.77, 0.485, 0.72],
-            "main_sh_boiler_fuel": [
-                "Heating Oil                   ",
-                "Heating Oil                   ",
-                "Electricity                   ",
-            ],
-            "sample_size": [5, 2, 2],
-            "archetype": 3 * ["dwelling_type"],
-        }
-    )
     # pd.DataFrame.combine_first() sorts index values by default
     # ... so shuffles input DataFrame when filling with archetypes
     expected_output = pd.DataFrame(
@@ -211,7 +168,7 @@ def test_fillna_with_archetypes():
                 "Ground-floor apartment",
                 "Mid-terrace house",
             ],
-            "archetype": ["dwelling_type"] + 9 * ["none"],
+            "archetype": ["['dwelling_type']"] + 9 * ["none"],
             "main_sh_boiler_fuel": [
                 "Heating Oil                   ",
                 "Heating Oil                   ",
@@ -224,11 +181,24 @@ def test_fillna_with_archetypes():
                 "Mains Gas                     ",
                 "Mains Gas                     ",
             ],
-            "sample_size": [5.0, 5.0, 5.0, 5.0, 5.0, 2.0, 2.0, 2.0, 2.0, np.nan],
-            "wall_uvalue": [1.77, 1.77, 0.28, 0.3, 2.0, 0.6, 0.37, 0.5, 0.94, 2.09],
+            "sample_size_['dwelling_type']": [
+                5.0,
+                5.0,
+                5.0,
+                5.0,
+                5.0,
+                2.0,
+                2.0,
+                2.0,
+                2.0,
+                np.nan,
+            ],
+            "wall_uvalue": [1.035, 1.77, 0.28, 0.3, 2.0, 0.6, 0.37, 0.5, 0.94, 2.09],
         }
     )
-    output = archetype._fillna_with_archetypes(
-        stock=stock, archetypes=archetypes, archetype_columns=["dwelling_type"]
+    output = archetype.fillna_with_archetypes(
+        buildings=stock,
+        archetype_columns=[["dwelling_type"]],
+        sample_size=1,
     )
     assert_frame_equal(output, expected_output, check_like=True)

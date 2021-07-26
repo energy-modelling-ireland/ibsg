@@ -1,67 +1,8 @@
-from configparser import ConfigParser
-from typing import Any
-from typing import Callable
-from typing import Dict
 from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
 
 import icontract
 import numpy as np
 import pandas as pd
-import streamlit as st
-
-from ibsg import CONFIG
-
-
-Operations = Dict[str, Union[str, Callable]]
-
-
-def main(
-    bers: pd.DataFrame,
-    selections: Dict[str, Any],
-    config: ConfigParser = CONFIG,
-) -> Tuple[pd.DataFrame, Optional[Dict[str, pd.DataFrame]]]:
-
-    sample_size = int(config["settings"]["sample_size"])
-    archetypes = {}
-    if selections["ber_granularity"] == "countyname":
-        granularity = "countyname"
-        exclude_columns = ["small_area", "id"]
-    elif selections["ber_granularity"] == "small_area":
-        granularity = "small_area"
-        exclude_columns = ["countyname", "id"]
-    else:
-        raise ValueError("Only countyname or small_area ber_granularity are supported")
-    archetypes[granularity] = _create_archetypes(
-        stock=bers,
-        archetype_name=f"{granularity}__period_built",
-        index_columns=[granularity, "period_built"],
-        exclude_columns=exclude_columns,
-        sample_size=sample_size,
-    )
-    archetypes["period_built"] = _create_archetypes(
-        stock=bers,
-        archetype_name="period_built",
-        index_columns=["period_built"],
-        exclude_columns=["small_area", "countyname", "id"],
-        sample_size=sample_size,
-    )
-    archetyped_bers = (
-        _flag_known_buildings(bers, on_column="dwelling_type")
-        .pipe(
-            _fillna_with_archetypes,
-            archetypes=archetypes[granularity],
-            archetype_columns=[granularity, "period_built"],
-        )
-        .pipe(
-            _fillna_with_archetypes,
-            archetypes=archetypes["period_built"],
-            archetype_columns=["period_built"],
-        )
-    )
-    return archetyped_bers, archetypes
 
 
 def _get_mode_or_first_occurence(srs: pd.Series) -> str:
@@ -103,7 +44,8 @@ def _create_archetypes(
     Returns:
         pd.DataFrame: Archetypes DataFrame
     """
-    archetype_group_sizes = stock.groupby(index_columns).size().rename("sample_size")
+    sample_size_name = f"sample_size_{archetype_name}"
+    archetype_group_sizes = stock.groupby(index_columns).size().rename(sample_size_name)
     use_columns = set(stock.columns).difference(set(exclude_columns))
     agg_columns = set(use_columns).difference(set(index_columns))
     aggregation_operations = _get_aggregation_operations(stock[agg_columns])
@@ -112,22 +54,26 @@ def _create_archetypes(
         .groupby(index_columns)
         .agg(aggregation_operations)
         .join(archetype_group_sizes)
-        .query(f"sample_size > {sample_size}")
+        .query(f"`{sample_size_name}` > {sample_size}")
         .reset_index()
         .assign(archetype=archetype_name)
     )
 
 
-def _flag_known_buildings(stock: pd.DataFrame, on_column: str) -> pd.DataFrame:
-    stock["archetype"] = stock[on_column].notnull().map({True: "none", False: np.nan})
-    return stock
-
-
-def _fillna_with_archetypes(
-    stock: pd.DataFrame, archetypes: pd.DataFrame, archetype_columns: List[str]
+def fillna_with_archetypes(
+    buildings: pd.DataFrame, archetype_columns: List[str], sample_size: int
 ) -> pd.DataFrame:
-    return (
-        stock.set_index(archetype_columns)
-        .combine_first(archetypes.set_index(archetype_columns))
-        .reset_index()
-    )
+    for columns in archetype_columns:
+        archetypes = _create_archetypes(
+            stock=buildings,
+            archetype_name=str(columns),
+            index_columns=columns,
+            exclude_columns=["id"],
+            sample_size=sample_size,
+        )
+        buildings = (
+            buildings.set_index(columns)
+            .combine_first(archetypes.set_index(columns))
+            .reset_index()
+        )
+    return buildings

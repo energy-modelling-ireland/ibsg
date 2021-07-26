@@ -85,7 +85,11 @@
             "WH Main System Eff": "main_hw_boiler_efficiency",
             "HS Suppl System Eff": "suppl_sh_boiler_efficiency_adjustment_factor",
             "HS Eff Adj Factor": "main_sh_boiler_efficiency_adjustment_factor",
-            "WH Eff Adj Factor": "main_hw_boiler_efficiency_adjustment_factor"
+            "WH Eff Adj Factor": "main_hw_boiler_efficiency_adjustment_factor",
+            "DeliveredEnergyMainSpace": "main_sh_demand",
+            "DeliveredEnergySecondarySpace": "suppl_sh_demand",
+            "DeliveredEnergyMainWater": "main_hw_demand",
+            "DeliveredEnergySupplementaryWater": "suppl_hw_demand"
         },
         "dtype": {
             "cso_small_area": "category",
@@ -119,7 +123,11 @@
             "HS Suppl System Eff": "float32",
             "HS Eff Adj Factor": "float32",
             "WH Eff Adj Factor": "float32",
-            "HS Suppl Heat Fraction": "float32"
+            "HS Suppl Heat Fraction": "float32",
+            "DeliveredEnergyMainSpace": "float32",
+            "DeliveredEnergySecondarySpace": "float32",
+            "DeliveredEnergyMainWater": "float32",
+            "DeliveredEnergySupplementaryWater": "float32"
         }
     },
     "postcodes": {
