@@ -5,6 +5,7 @@ from typing import Dict
 
 import streamlit as st
 
+from ibsg import archetype
 from ibsg import ber
 from ibsg import census
 from ibsg import clean
@@ -32,7 +33,35 @@ def generate_building_stock(
             filepath=data_dir / config["postcode_bers"]["filename"],
         ).pipe(ber.filter_bers, selections=selections, defaults=defaults)
 
-    if selections["census"]:
+    if selections["census"] & selections["archetype"]:
+        census_buildings = (
+            census.load_census_buildings(
+                url=config["census_buildings"]["url"],
+                filepath=data_dir / config["census_buildings"]["filename"],
+            )
+            .pipe(
+                clean.get_rows_containing_substrings,
+                column_name="countyname",
+                selected_substrings=selections["countyname"],
+                all_substrings=defaults["countyname"],
+            )
+            .pipe(census.replace_not_stated_period_built_with_mode)
+            .pipe(
+                merge.fill_census_with_bers,
+                bers=ber_buildings,
+                ber_granularity=selections["ber_granularity"],
+            )
+        )
+        del ber_buildings
+        buildings = archetype.fillna_with_archetypes(
+            census_buildings,
+            archetype_columns=[
+                [selections["ber_granularity"], "period_built"],
+                ["period_built"],
+            ],
+            sample_size=config["settings"]["sample_size"],
+        )
+    elif selections["census"]:
         buildings = (
             census.load_census_buildings(
                 url=config["census_buildings"]["url"],

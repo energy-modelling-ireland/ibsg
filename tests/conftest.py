@@ -5,7 +5,7 @@ from _pytest.mark import param
 import pandas as pd
 import pytest
 
-from ibsg import small_areas
+from ibsg import ber
 
 
 @pytest.fixture
@@ -99,14 +99,14 @@ def small_area_ids_2016(shared_datadir) -> List[str]:
     ).to_list()
 
 
-@pytest.fixture
-def small_area_bers(shared_datadir, config, small_area_ids_2016):
-    raw_sa_bers = small_areas._load_small_area_bers(
-        shared_datadir / "anonymised_small_area_ber_sample.csv.zip",
-    )
-    return small_areas._filter_small_area_bers(
-        bers=raw_sa_bers, small_area_ids=small_area_ids_2016
-    )
+# @pytest.fixture
+# def small_area_bers(shared_datadir, config, small_area_ids_2016):
+#     raw_sa_bers = ber.load_small_area_bers(
+#         shared_datadir / "anonymised_small_area_ber_sample.csv.zip",
+#     )
+#     return ber.remove_erroneous_bers(
+#         bers=raw_sa_bers, small_area_ids=small_area_ids_2016
+#     )
 
 
 @pytest.fixture
