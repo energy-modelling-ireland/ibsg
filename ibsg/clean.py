@@ -69,9 +69,9 @@ def get_rows_containing_substrings(
     if selected_substrings == all_substrings:
         selected_df = df
     else:
-        substrings_to_search = "|".join(selected_substrings)
+        substrings_to_search = "|".join(map(str.lower, selected_substrings))
         selected_df = df[
-            df[column_name].str.title().str.contains(substrings_to_search, regex=True)
+            df[column_name].str.lower().str.contains(substrings_to_search, regex=True)
         ]
     return selected_df
 

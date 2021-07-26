@@ -1,67 +1,17 @@
-from configparser import ConfigParser
 from pathlib import Path
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
-import icontract
+import fsspec
 import numpy as np
 import pandas as pd
-import streamlit as st
 
 from ibsg import clean
-from ibsg import CONFIG
-from ibsg import io
-from ibsg import _DATA_DIR
 
 
-def main(
-    bers: pd.DataFrame,
-    selections: Dict[str, Any],
-    config: ConfigParser = CONFIG,
-    data_dir: Path = _DATA_DIR,
-) -> Optional[pd.DataFrame]:
-    raw_census = _load_census_buildings(
-        url=config["census_buildings"]["url"],
-        data_dir=data_dir,
-        filesystem_name=config["census_buildings"]["filesystem"],
-    )
-    filtered_census = _extract_rows_in_values(raw_census, selections["countyname"])
-    if selections["replace_not_stated"]:
-        with st.spinner("Replacing 'Not Stated' Period Built..."):
-            census = replace_not_stated_period_built_with_mode(filtered_census)
-    else:
-        census = filtered_census
-    with st.spinner("Filling the 2016 census building stock with BERs..."):
-        census_standardised = _standardise_census(census, selections["ber_granularity"])
-        bers_standardised = _standardise_bers(bers, selections["ber_granularity"])
-        stock = _fill_census_with_bers(
-            census=census_standardised,
-            bers=bers_standardised,
-            ber_granularity=selections["ber_granularity"],
-        )
-    return stock
-
-
-@st.cache
-def _load_census_buildings(
-    url: str, data_dir: Path, filesystem_name: str
-) -> pd.DataFrame:
-    return io.load(
-        read=pd.read_parquet,
-        url=url,
-        data_dir=data_dir,
-        filesystem_name=filesystem_name,
-    )
-
-
-@icontract.ensure(lambda result: len(result) > 0)
-def _extract_rows_in_values(df: pd.DataFrame, values: List[str]):
-    where_rows_in_values = (
-        df["countyname"].astype("string").str.lower().isin(map(str.lower, values))
-    )
-    return df[where_rows_in_values].copy()
+def load_census_buildings(url: str, filepath: Path) -> pd.DataFrame:
+    if not filepath.exists():
+        with fsspec.open(url) as f:
+            pd.read_parquet(f).to_parquet(filepath)
+    return pd.read_parquet(filepath)
 
 
 def replace_not_stated_period_built_with_mode(stock: pd.DataFrame) -> pd.Series:

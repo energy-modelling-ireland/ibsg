@@ -21,3 +21,7 @@ def test_log_percentage_lost(capsys, monkeypatch):
 
     captured = capsys.readouterr()
     assert captured.out == f"{percentage_removed}% removed by '{filter_name}'\n"
+
+
+def test_get_rows_containing_substrings():
+    pass

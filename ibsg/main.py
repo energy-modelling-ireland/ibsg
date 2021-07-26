@@ -6,8 +6,8 @@ from typing import Dict
 
 import fsspec
 import pandas as pd
-import streamlit as st
 
+import census
 from ibsg import clean
 from ibsg import CONFIG
 from ibsg import _DATA_DIR
@@ -35,8 +35,19 @@ def generate_building_stock(
             filepath=data_dir / config["postcode_bers"]["filename"],
         ).pipe(_filter_bers, selections=selections, defaults=defaults)
 
+    if selections["census"]:
+        census_buildings = census.load_census_buildings(
+            url=config["census_buildings"]["url"],
+            filepath=data_dir / config["census_buildings"]["filename"],
+        ).pipe(
+            clean.get_rows_containing_substrings,
+            column_name="countyname",
+            selected_substrings=selections["countyname"],
+            all_substrings=defaults["countyname"],
+        )
 
-def _load_postcode_bers(url: str, filepath: Path):
+
+def _load_postcode_bers(url: str, filepath: Path) -> pd.DataFrame:
     if not filepath.exists():
         with fsspec.open(url) as f:
             pd.read_parquet(f).to_parquet(filepath)
