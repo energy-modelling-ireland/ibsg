@@ -11,18 +11,14 @@ import streamlit as st
 
 from ibsg import CONFIG
 from ibsg import _DATA_DIR
+from ibsg import _DOWNLOAD_DIR
 from ibsg import DEFAULTS
 from ibsg.main import generate_building_stock
-
-# workaround from streamlit/streamlit#400
-STREAMLIT_STATIC_PATH = Path(st.__path__[0]) / "static"
-DOWNLOADS_PATH = STREAMLIT_STATIC_PATH / "downloads"
-if not DOWNLOADS_PATH.is_dir():
-    DOWNLOADS_PATH.mkdir()
 
 
 def main(
     data_dir: Path = _DATA_DIR,
+    download_dir: Path = _DOWNLOAD_DIR,
     config: ConfigParser = CONFIG,
     defaults: Dict[str, Any] = DEFAULTS,
 ):
@@ -105,7 +101,19 @@ def main(
         help="You might need to install 7zip to unzip '.csv.gz' (see hints)",
     )
     if st.button("Generate Building Stock?"):
-        generate_building_stock(selections=selections, data_dir=data_dir, config=config)
+        filename = (
+            selections["ber_granularity"]
+            + "_buildings"
+            + selections["download_filetype"]
+        )
+        generate_building_stock(
+            data_dir=data_dir,
+            filepath=download_dir / filename,
+            selections=selections,
+            config=config,
+            defaults=defaults,
+        )
+        st.markdown(f"[{filename}](downloads/{filename})")
 
 
 def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
