@@ -1,0 +1,12 @@
+name: ibsg
+channels:
+  - conda-forge
+dependencies:
+  - streamlit
+  - requests
+  - tqdm
+  - s3fs
+  - fsspec
+  - pandas
+  - numpy
+  - icontract
