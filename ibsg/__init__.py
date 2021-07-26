@@ -20,3 +20,8 @@ with open(_SRC_DIR / "defaults.json") as f:
 
 CONFIG = ConfigParser()
 CONFIG.read(_SRC_DIR / "config.ini")
+
+if not _DOWNLOAD_DIR.exists():
+    _DOWNLOAD_DIR.mkdir()
+if not _DATA_DIR.exists():
+    _DATA_DIR.mkdir()

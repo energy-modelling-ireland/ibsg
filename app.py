@@ -24,7 +24,7 @@ def main(
 ):
     st.markdown(
         """
-        # 🏠 Irish Building Stock Generator 🏠
+        # Irish Building Stock Generator
         
         Generate a standardised building stock at postcode **or** small area level.
 
