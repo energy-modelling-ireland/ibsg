@@ -36,6 +36,18 @@ def generate_building_stock(
 
     if selections["census"] & selections["archetype"]:
         with st.spinner("Linking BERs to the 2016 Census & Filling with Archetypes..."):
+            if selections["ber_granularity"] == "small_area":
+                archetype_columns = [
+                    ["small_area", "period_built"],
+                    ["cso_ed_id", "period_built"],
+                    ["countyname", "period_built"],
+                    ["period_built"],
+                ]
+            else:
+                archetype_columns = [
+                    ["countyname", "period_built"],
+                    ["period_built"],
+                ]
             buildings = (
                 census.load_census_buildings(
                     url=config["census_buildings"]["url"],
@@ -55,10 +67,7 @@ def generate_building_stock(
                 )
                 .pipe(
                     archetype.fillna_with_archetypes,
-                    archetype_columns=[
-                        [selections["ber_granularity"], "period_built"],
-                        ["period_built"],
-                    ],
+                    archetype_columns=archetype_columns,
                     sample_size=config["settings"]["sample_size"],
                 )
             )
