@@ -11,6 +11,8 @@ from ibsg import census
 from ibsg import clean
 from ibsg import merge
 
+STREAMLIT_SHARING = bool(st.secrets["STREAMLIT_SHARING"])
+
 
 def generate_building_stock(
     data_dir: Path,
@@ -36,6 +38,16 @@ def generate_building_stock(
 
     if selections["census"] & selections["archetype"]:
         with st.spinner("Linking BERs to the 2016 Census & Filling with Archetypes..."):
+            if STREAMLIT_SHARING:
+                st.error(
+                    """
+                    Cannot fill the Census with BER Archetypes on 'streamlit sharing'
+                    free-tier resources.  Please deselect 'Fill Unknown Buildings with 
+                    Archetypes?' and try again, or follow the instructions on our
+                    Github to run ibsg locally. 
+                    """
+                )
+                return
             if selections["ber_granularity"] == "small_area":
                 archetype_columns = [
                     ["small_area", "period_built"],
