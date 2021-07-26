@@ -89,7 +89,7 @@ def main(
     )
     selections["archetype"] = st.checkbox(
         "Fill unknown buildings with archetypes?",
-        value=True,
+        value=False,
         help="""If >30 buildings of the same 'countyname | period built' (or
         'small area | period built' for Small Area BERs) fill unknown buildings with
         properties of modal string columns and median numeric columns, else archetype
