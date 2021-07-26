@@ -61,11 +61,14 @@ def _create_archetypes(
 
 
 def fillna_with_archetypes(
-    buildings: pd.DataFrame, archetype_columns: List[str], sample_size: int
+    buildings: pd.DataFrame, archetype_columns: List[List[str]], sample_size: int
 ) -> pd.DataFrame:
+    buildings["archetype"] = (
+        buildings["year_of_construction"].notnull().map({True: "none", False: np.nan})
+    )
     for columns in archetype_columns:
         archetypes = _create_archetypes(
-            stock=buildings,
+            stock=buildings.query("archetype == 'none'"),
             archetype_name=str(columns),
             index_columns=columns,
             exclude_columns=["id"],

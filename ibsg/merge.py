@@ -86,4 +86,4 @@ def fill_census_with_bers(
         how="left",
     )
     after_2016 = mergeable_bers.query("year_of_construction >= 2016")
-    return pd.concat([before_2016, after_2016])
+    return pd.concat([before_2016, after_2016]).reset_index(drop=True)

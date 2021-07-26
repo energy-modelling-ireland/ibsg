@@ -1,0 +1,20 @@
+name: ibsg
+channels:
+  - conda-forge
+dependencies:
+  - black
+  - mypy
+  - ipykernel
+  - pytest-datadir
+  - streamlit
+  - typeguard
+  - pytest-cov
+  - requests
+  - tqdm
+  - s3fs
+  - pdbpp
+  - pytest-xdist
+  - fsspec
+  - pandas
+  - numpy
+  - icontract
