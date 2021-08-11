@@ -1,6 +1,6 @@
 from io import BytesIO
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Optional
 from typing import Dict
 
 import fsspec
@@ -28,8 +28,18 @@ def load_small_area_bers(
     return pd.read_parquet(filepath)
 
 
+def load_small_area_ids(url: str, filepath: Path) -> List[str]:
+    if not filepath.exists():
+        with fsspec.open(url) as f:
+            pd.read_csv(f).to_csv(filepath, index=None)
+    return pd.read_csv(filepath).squeeze().tolist()
+
+
 def remove_erroneous_bers(
-    bers: pd.DataFrame, selected_filters: List[str], bounds: Dict[str, Dict[str, int]]
+    bers: pd.DataFrame,
+    selected_filters: List[str],
+    bounds: Dict[str, Dict[str, int]],
+    small_area_ids: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     return (
         bers.pipe(
@@ -107,11 +117,21 @@ def remove_erroneous_bers(
                 ub=bounds["thermal_bridging_factor"]["ub"],
             ),
         )
+        .pipe(
+            clean.get_rows_equal_to_values,
+            filter_name="Is valid small area id",
+            selected_filters=selected_filters,
+            on_column="small_area",
+            values=small_area_ids,
+        )
     )
 
 
 def filter_bers(
-    raw_bers: pd.DataFrame, selections: Dict[str, Any], defaults: Dict[str, Any]
+    raw_bers: pd.DataFrame,
+    selections: Dict[str, Any],
+    defaults: Dict[str, Any],
+    small_area_ids: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     selected_bers = clean.get_rows_containing_substrings(
         df=raw_bers,
@@ -123,4 +143,5 @@ def filter_bers(
         bers=selected_bers,
         selected_filters=selections["filters"],
         bounds=selections["bounds"],
+        small_area_ids=small_area_ids,
     )

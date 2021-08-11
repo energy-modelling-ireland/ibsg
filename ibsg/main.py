@@ -23,12 +23,21 @@ def generate_building_stock(
 ) -> None:
     with st.spinner("Loading BERs..."):
         if selections["ber_granularity"] == "small_area":
+            small_area_ids = ber.load_small_area_ids(
+                url=config["small_area_ids"]["url"],
+                filepath=data_dir / config["small_area_ids"]["filename"],
+            )
             ber_buildings = ber.load_small_area_bers(
                 zipped_csv=selections["small_area_bers"],
                 dtype=defaults["small_areas"]["dtype"],
                 mappings=defaults["small_areas"]["mappings"],
                 filepath=data_dir / config["small_area_bers"]["filename"],
-            ).pipe(ber.filter_bers, selections=selections, defaults=defaults)
+            ).pipe(
+                ber.filter_bers,
+                selections=selections,
+                defaults=defaults,
+                small_area_ids=small_area_ids,
+            )
 
         else:
             ber_buildings = ber.load_postcode_bers(

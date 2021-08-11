@@ -131,6 +131,7 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
         "main_hw_boiler_efficiency_adjustment_factor > lb",
         "declared_loss_factor < ub",
         "lb < thermal_bridging_factor < ub",
+        "Is valid small area id",
     ]
     selected_filters: List[str] = st.multiselect(
         "Select Filters",
