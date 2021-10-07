@@ -43,6 +43,8 @@ def generate_building_stock(
             ber_buildings = ber.load_postcode_bers(
                 url=config["postcode_bers"]["url"],
                 filepath=data_dir / config["postcode_bers"]["filename"],
+                dtype=defaults["postcodes"]["dtype"],
+                mappings=defaults["postcodes"]["mappings"],
             ).pipe(ber.filter_bers, selections=selections, defaults=defaults)
 
     if selections["census"] & selections["archetype"]:

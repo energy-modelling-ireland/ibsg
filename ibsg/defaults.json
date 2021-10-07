@@ -178,6 +178,7 @@
     },
     "postcodes": {
         "mappings": {
+            "SA_Code": "small_area",
             "CountyName": "countyname",
             "DwellingTypeDescr": "dwelling_type",
             "Year_of_Construction": "year_of_construction",
@@ -211,6 +212,7 @@
             "ThermalBridgingFactor": "thermal_bridging_factor"
         },
         "dtype": {
+            "SA_Code": "category",
             "CountyName": "category",
             "DwellingTypeDescr": "category",
             "Year_of_Construction": "int32",

@@ -10,10 +10,17 @@ from ibsg import clean
 from ibsg import io
 
 
-def load_postcode_bers(url: str, filepath: Path) -> pd.DataFrame:
+def load_postcode_bers(
+    url: str,
+    filepath: Path,
+    dtype: Dict[str, Any],
+    mappings: Dict[str, Any],
+) -> pd.DataFrame:
     if not filepath.exists():
         with fsspec.open(url) as f:
-            pd.read_parquet(f).to_parquet(filepath)
+            pd.read_parquet(f, columns=list(dtype.keys())).rename(
+                columns=mappings
+            ).to_parquet(filepath)
     return pd.read_parquet(filepath)
 
 
