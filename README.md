@@ -1,5 +1,7 @@
 # Irish Building Stock Generator (IBSG)
 
+> ⚠️ This web application does not download the Postcode Building Energy Rating internally but rather uses an extract in `parquet` format (for faster io) that requires a manual update.  
+
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/energy-modelling-ireland/ibsg/main/app.py)
 
 Generate a standardised building stock at postcode or small area level in your browser.
