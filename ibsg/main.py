@@ -96,6 +96,16 @@ def generate_building_stock(
             )
             del ber_buildings
     elif selections["census"]:
+        if STREAMLIT_SHARING:
+            st.error(
+                """
+                Cannot fill the Link to Census on 'streamlit sharing'
+                free-tier resources.  Please deselect 'Link to the 2016 Census'
+                and try again, or follow the instructions on our
+                Github to run ibsg locally. 
+                """
+            )
+            return
         with st.spinner("Linking BERs to the 2016 Census..."):
             buildings = (
                 census.load_census_buildings(
