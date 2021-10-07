@@ -40,7 +40,7 @@ def main(
         - Or raise an issue on our [Github](https://github.com/energy-modelling-ireland/ibsg) 
         """
     )
-    with st.beta_expander("Hints"):
+    with st.expander("Hints"):
         st.markdown(
             f"""
         - You might need to install [7zip](https://www.7-zip.org/) to:
@@ -140,7 +140,7 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
         help="lb = Lower Bound, ub = Upper Bound",
     )
 
-    with st.beta_expander("Change BER Filter Bounds?"):
+    with st.expander("Change BER Filter Bounds?"):
         c1, c2 = st.beta_columns(2)
         return selected_filters, {
             "ground_floor_area": {
