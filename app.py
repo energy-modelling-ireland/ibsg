@@ -77,13 +77,13 @@ def main(
     )
     selections["census"] = st.checkbox(
         "Link to the 2016 census?",
-        value=True,
+        value=False,
         help="""If a dwelling in registered in the 2016 has had a BER assessment fill
         the building with its corresponding properties, else leave empty""",
     )
     selections["replace_not_stated"] = st.checkbox(
         "Replace 'Not stated' period built with Mode?",
-        value=True,
+        value=False,
         help="""Cannot archetype buildings with unknown Period Built so they must be
         inferred to estimate the properties of these buildings""",
     )
