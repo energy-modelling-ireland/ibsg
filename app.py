@@ -7,6 +7,8 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
+import requests
+import stqdm
 import streamlit as st
 
 
@@ -100,8 +102,37 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
         }
 
 
-def _generate_bers(*args, **kwargs):
-    pass
+def _download_bers(form: Dict[str, str], savepath: Path) -> None:
+    response = requests.post(
+        url=form["url"],
+        headers=form["headers"],
+        cookies=form["cookies"],
+        data=form["data"],
+        stream=True,
+    )
+
+    # raise an HTTPError if the HTTP request returned an unsuccessful status code.
+    response.raise_for_status()
+
+    with stqdm.wrapattr(
+        open(savepath, "wb"),
+        "write",
+        miniters=1,
+        desc=savepath,
+        total=int(response.headers.get('content-length', 0))
+    ) as fout:
+        for chunk in response.iter_content(chunk_size=4096):
+            fout.write(chunk)
+
+
+def _generate_bers(
+    data_dir: Path,
+    filename: str,
+    selections: Dict[str, Any],
+    config: ConfigParser,
+    defaults: Dict[str, Any],
+) -> None:
+    _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
 
 
 def main(
@@ -140,7 +171,7 @@ def main(
         filename = f"BERPublicsearch-{today:%d-%m-%Y}.csv.gz"
         _generate_bers(
             data_dir=data_dir,
-            filepath=download_dir / filename,
+            filename=filename,
             selections=selections,
             config=config,
             defaults=defaults,

@@ -54,7 +54,8 @@
         "Waterford City"
     ],
     "download": {
-            "cookies": {
+        "url": "https://ndber.seai.ie/BERResearchTool/ber/search.aspx",
+        "cookies": {
             "ASP.NET_SessionId": "gvb1njrssax1kcmjyzatuf3x"
         },
         "headers": {
@@ -81,7 +82,7 @@
             "__SCROLLPOSITIONX": "0",
             "__SCROLLPOSITIONY": "280",
             "__EVENTVALIDATION": "/wEdAAPEuLD//Lrnct58vIDU2Hx9Xw+uRy4COswXgj8OGX6Nym8pc/9FsasLndkJePd0e319WvmW++umNulm4SeWaVFh1FOy2200t0nXvcBQEo5kHw==",
-            "ctl00$DefaultContent$BERSearch$dfExcelDownlaod$DownloadAllData": "Download All Data",
+            "ctl00$DefaultContent$BERSearch$dfExcelDownlaod$DownloadAllData": "Download All Data"
         }
     }
 }
