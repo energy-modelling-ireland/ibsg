@@ -792,6 +792,17 @@ toml = "*"
 testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "requests", "xmlschema"]
 
 [[package]]
+name = "pytest-socket"
+version = "0.4.1"
+description = "Pytest Plugin to disable socket calls during tests"
+category = "dev"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[package.dependencies]
+pytest = ">=3.6.3"
+
+[[package]]
 name = "python-dateutil"
 version = "2.8.2"
 description = "Extensions to the standard Python datetime module"
@@ -1147,7 +1158,7 @@ notebook = ">=4.4.1"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "cdea72d1cf8c5b02799051d335e357b112ad5e35c74d822d6ec5c772d31194db"
+content-hash = "5c2570c246963b58a98f29ea2a7691416d710037a88b6dab5b7696b753aebaad"
 
 [metadata.files]
 altair = [
@@ -1742,6 +1753,10 @@ pyrsistent = [
 pytest = [
     {file = "pytest-6.2.5-py3-none-any.whl", hash = "sha256:7310f8d27bc79ced999e760ca304d69f6ba6c6649c0b60fb0e04a4a77cacc134"},
     {file = "pytest-6.2.5.tar.gz", hash = "sha256:131b36680866a76e6781d13f101efb86cf674ebb9762eb70d3082b6f29889e89"},
+]
+pytest-socket = [
+    {file = "pytest-socket-0.4.1.tar.gz", hash = "sha256:b5abcfd14d9c03e7d4e2875bb5e190af28bf5b4162d0a83e3d7aee6d79f1c85d"},
+    {file = "pytest_socket-0.4.1-py3-none-any.whl", hash = "sha256:e3bc6cc9c2534289c6a5b9748ca733f6ae8c8d34f1fdab5115ca17a47860bf5e"},
 ]
 python-dateutil = [
     {file = "python-dateutil-2.8.2.tar.gz", hash = "sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86"},
