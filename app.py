@@ -1,6 +1,6 @@
-from collections import defaultdict
 from configparser import ConfigParser
-import datetime
+from datetime import datetime
+from json import load
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -9,115 +9,21 @@ from typing import Tuple
 
 import streamlit as st
 
-from ibsg import CONFIG
-from ibsg import _DATA_DIR
-from ibsg import _DOWNLOAD_DIR
-from ibsg import DEFAULTS
-from ibsg.main import generate_building_stock
 
+DATA_DIR = Path(__file__).parent / "data"
+if not DATA_DIR.exists():
+    DATA_DIR.mkdir()
 
-def main(
-    data_dir: Path = _DATA_DIR,
-    download_dir: Path = _DOWNLOAD_DIR,
-    config: ConfigParser = CONFIG,
-    defaults: Dict[str, Any] = DEFAULTS,
-):
-    st.markdown(
-        """
-        # Irish Building Stock Generator
-        
-        Generate a standardised building stock at postcode **or** small area level.
+# workaround from streamlit/streamlit#400
+DOWNLOAD_DIR = Path(st.__path__[0]) / "static" / "downloads"
+if not DOWNLOAD_DIR.exists():
+    DOWNLOAD_DIR.mkdir()
 
-        - Select `Fetch Postcode BERs` (i.e.  [`BER Public`](https://ndber.seai.ie/BERResearchTool/Register/Register.aspx))
-            
-        - **Or** upload a `zip` file containing a `csv` of Small Area BERs (`closed-access`)
+with open("defaults.json") as f:
+    DEFAULTS = load(f)
 
-        ---
-
-        If you have any problems or questions:
-
-        - Chat with us on [Gitter](https://gitter.im/energy-modelling-ireland/ibsg)
-        - Or raise an issue on our [Github](https://github.com/energy-modelling-ireland/ibsg) 
-        """
-    )
-    with st.expander("Hints"):
-        st.markdown(
-            f"""
-        - You might need to install [7zip](https://www.7-zip.org/) to:
-            - Read `gz` files
-            - Compress your closed-access small area BER dataset to a `zip` file to
-            under 200MB
-        - `ibsg` won't be able to read your zipped Small Area BERs `csv` file if the
-        column names don't match:
-
-        `{list(defaults['small_areas']['mappings'].keys())}`
-        """
-        )
-
-    selections = {}
-    selections["ber_granularity"] = st.radio(
-        "BER Granularity",
-        options=["countyname", "small_area"],
-        help="""Granularity is the extent to which a system is broken down into small
-        parts, either the system itself or its description or observation. It is the
-        'extent to which a larger entity is subdivided. For example, a yard broken into
-        inches has finer granularity than a yard broken into feet.'""",
-    )
-    if selections["ber_granularity"] == "small_area":
-        selections["small_area_bers"] = st.file_uploader(
-            "Upload Small Area BERs",
-            type="zip",
-        )
-    selections["countyname"] = st.multiselect(
-        f"Select countyname",
-        options=defaults["countyname"],
-        default=defaults["countyname"],
-        help="""Extract only buildings in certain selected 'countyname' or postcodes
-        such as 'Co. Dublin'""",
-    )
-    selections["census"] = st.checkbox(
-        "Link to the 2016 census?",
-        value=False,
-        help="""If a dwelling in registered in the 2016 has had a BER assessment fill
-        the building with its corresponding properties, else leave empty""",
-    )
-    selections["replace_not_stated"] = st.checkbox(
-        "Replace 'Not stated' period built with Mode?",
-        value=False,
-        help="""Cannot archetype buildings with unknown Period Built so they must be
-        inferred to estimate the properties of these buildings""",
-    )
-    selections["archetype"] = st.checkbox(
-        "Fill unknown buildings with archetypes?",
-        value=False,
-        help="""For Postcode BERs: if >30 buildings of the same
-        'countyname | period built' fill unknown buildings with properties of modal
-        string columns and median numeric columns, else archetype on 'period built'
-        only.  For Small Area BERs do fill unknowns with 'small_area | period built',
-        'cso_ed_id | period built', 'countyname | period built', and finally 
-        'period built' progressively. 
-        """,
-    )
-    selections["filters"], selections["bounds"] = _select_ber_filters()
-    selections["download_filetype"] = st.selectbox(
-        "Download format?",
-        options=[".csv.gz", ".parquet"],
-        help="You might need to install 7zip to unzip '.csv.gz' (see hints)",
-    )
-    if st.button("Generate Building Stock?"):
-        filename = (
-            selections["ber_granularity"]
-            + "_buildings"
-            + selections["download_filetype"]
-        )
-        generate_building_stock(
-            data_dir=data_dir,
-            filepath=download_dir / filename,
-            selections=selections,
-            config=config,
-            defaults=defaults,
-        )
-        st.markdown(f"[{filename}](downloads/{filename})")
+CONFIG = ConfigParser()
+CONFIG.read("config.ini")
 
 
 def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
@@ -141,7 +47,7 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
     )
 
     with st.expander("Change BER Filter Bounds?"):
-        c1, c2 = st.beta_columns(2)
+        c1, c2 = st.columns(2)
         return selected_filters, {
             "ground_floor_area": {
                 "lb": c1.number_input("Lower Bound: ground_floor_area", value=0),
@@ -192,6 +98,55 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
                 ),
             },
         }
+
+
+def _generate_bers(*args, **kwargs):
+    pass
+
+
+def main(
+    data_dir: Path = DATA_DIR,
+    download_dir: Path = DOWNLOAD_DIR,
+    config: ConfigParser = CONFIG,
+    defaults: Dict[str, Any] = DEFAULTS,
+):
+    st.markdown(
+        """
+        # Irish Building Stock Generator
+        
+        Download a standardised version of the Irish Building Energy Ratings.
+        
+        > If you have any problems or questions please raise an issue on our [Github](https://github.com/energy-modelling-ireland/ibsg) 
+        """
+    )
+
+    selections = {}
+    selections["countyname"] = st.multiselect(
+        f"Select countyname",
+        options=defaults["countyname"],
+        default=defaults["countyname"],
+        help="""Extract only buildings in certain selected 'countyname' or postcodes
+        such as 'Co. Dublin'""",
+    )
+  
+    selections["filters"], selections["bounds"] = _select_ber_filters()
+    selections["download_filetype"] = st.selectbox(
+        "Download format?",
+        options=[".csv.gz", ".parquet"],
+        help="You might need to install 7zip to unzip '.csv.gz' (see hints)",
+    )
+    if st.button("Download?"):
+        today = datetime.today()
+        filename = f"BERPublicsearch-{today:%d-%m-%Y}.csv.gz"
+        _generate_bers(
+            data_dir=data_dir,
+            filepath=download_dir / filename,
+            selections=selections,
+            config=config,
+            defaults=defaults,
+        )
+        st.markdown(f"[{filename}](downloads/{filename})")
+
 
 
 if __name__ == "__main__":
