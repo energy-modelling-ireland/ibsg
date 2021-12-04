@@ -1,7 +1,8 @@
-from json import load
+import json
 from time import sleep
 
 import pytest
+from requests import Request
 import responses
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -9,7 +10,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 
 with open("defaults.json") as f:
-    DEFAULTS = load(f)
+    DEFAULTS = json.load(f)
 
 
 @pytest.fixture
@@ -27,9 +28,12 @@ def test_user_can_download_default_bers(browser: webdriver.Remote) -> None:
     responses.add(
         responses.POST,
         DEFAULTS["download"]["url"],
+        body=None,
         content_type="application/x-zip-compressed",
+        headers={
+            "content-disposition": "attachment; filename=BERPublicSearch.zip"
+        },
         status=200,
-        headers={"content-disposition": "attachment; filename=BERPublicSearch.zip"},
     )
 
     # Bob opens the website
@@ -42,6 +46,6 @@ def test_user_can_download_default_bers(browser: webdriver.Remote) -> None:
 
     # Clicks download
     browser.find_element_by_xpath('//button[text()="Download?"]').click()
-
+    
     # The filtered BERs appear in his downloads folder
     pytest.fail()
