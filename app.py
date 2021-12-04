@@ -8,7 +8,7 @@ from typing import List
 from typing import Tuple
 
 import requests
-import stqdm
+from stqdm import stqdm
 import streamlit as st
 
 
@@ -115,10 +115,10 @@ def _download_bers(form: Dict[str, str], savepath: Path) -> None:
     response.raise_for_status()
 
     with stqdm.wrapattr(
-        open(savepath, "wb"),
+        open(str(savepath), "wb"),
         "write",
         miniters=1,
-        desc=savepath,
+        desc=str(savepath),
         total=int(response.headers.get('content-length', 0))
     ) as fout:
         for chunk in response.iter_content(chunk_size=4096):
