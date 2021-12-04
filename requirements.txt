@@ -1,5 +1,0 @@
-fsspec[s3]
-icontract
-streamlit
-pandas
-pyarrow
