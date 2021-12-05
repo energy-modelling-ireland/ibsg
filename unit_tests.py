@@ -20,7 +20,8 @@ with open("defaults.json") as f:
 
 @pytest.fixture
 def sample_bers_filepath() -> str:
-    return "sample-BERPublicsearch.txt"
+    here = Path(__name__).parent
+    return here / "sample-BERPublicsearch.txt"
 
 
 @pytest.fixture
