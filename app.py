@@ -1,4 +1,3 @@
-from configparser import ConfigParser
 from datetime import datetime
 from json import load
 from pathlib import Path
@@ -31,12 +30,6 @@ def _get_streamlit_download_dir() -> Path:
 def _get_defaults() -> Dict[str, Any]:
     with open("defaults.json") as f:
         return load(f)
-
-
-def _get_config() -> ConfigParser:
-    config = ConfigParser()
-    config.read("config.ini")
-    return config
 
 
 def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
@@ -180,7 +173,6 @@ def _generate_bers(
         data_dir / filename,
         filters=selections["bounds"]
     )
-    breakpoint()
     copyfile(
         data_dir / filename, download_dir / filename
     )
@@ -189,7 +181,6 @@ def _generate_bers(
 def main(
     data_dir: Path = _get_data_dir(),
     download_dir: Path = _get_streamlit_download_dir(),
-    config: ConfigParser = _get_config(),
     defaults: Dict[str, Any] = _get_defaults(),
 ):
     st.markdown(

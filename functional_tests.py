@@ -72,4 +72,3 @@ def test_user_can_download_default_bers(
 
     # The filtered BERs appear in his downloads folder
     assert expected_output.exists()
-    breakpoint()
