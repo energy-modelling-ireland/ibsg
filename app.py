@@ -2,45 +2,54 @@ from configparser import ConfigParser
 from datetime import datetime
 from json import load
 from pathlib import Path
+from shutil import copyfile
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
 from zipfile import ZipFile
 
+import pandas as pd
 import requests
 from stqdm import stqdm
 import streamlit as st
 
 
-DATA_DIR = Path(__file__).parent / "data"
-if not DATA_DIR.exists():
-    DATA_DIR.mkdir()
+def _get_data_dir() -> Path:
+    data_dir = Path(__file__).parent / "data"
+    if not data_dir.exists():
+        data_dir.mkdir()
 
-# workaround from streamlit/streamlit#400
-DOWNLOAD_DIR = Path(st.__path__[0]) / "static" / "downloads"
-if not DOWNLOAD_DIR.exists():
-    DOWNLOAD_DIR.mkdir()
 
-with open("defaults.json") as f:
-    DEFAULTS = load(f)
+def _get_streamlit_download_dir() -> Path:
+    # workaround from streamlit/streamlit#400
+    download_dir = Path(st.__path__[0]) / "static" / "downloads"
+    if not download_dir.exists():
+        download_dir.mkdir()
 
-CONFIG = ConfigParser()
-CONFIG.read("config.ini")
+
+def _get_defaults() -> Dict[str, Any]:
+    with open("defaults.json") as f:
+        return load(f)
+
+
+def _get_config() -> ConfigParser:
+    config = ConfigParser()
+    config.read("config.ini")
+    return config
 
 
 def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
     filter_names = [
         "Is not provisional",
-        "lb < ground_floor_area < ub",
-        "lb < living_area_percent < ub",
-        "lb < main_sh_boiler_efficiency < ub",
-        "lb < main_hw_boiler_efficiency < ub",
-        "main_sh_boiler_efficiency_adjustment_factor > lb",
-        "main_hw_boiler_efficiency_adjustment_factor > lb",
-        "declared_loss_factor < ub",
-        "lb < thermal_bridging_factor < ub",
-        "Is valid small area id",
+        "lb < GroundFloorArea < ub",
+        "lb < LivingAreaPercent < ub",
+        "lb < HSMainSystemEfficiency < ub",
+        "lb < WHMainSystemEff < ub",
+        "HSEffAdjFactor > lb",
+        "WHEffAdjFactor > lb",
+        "DeclaredLossFactor < ub",
+        "lb < ThermalBridgingFactor < ub",
     ]
     selected_filters: List[str] = st.multiselect(
         "Select Filters",
@@ -52,52 +61,52 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
     with st.expander("Change BER Filter Bounds?"):
         c1, c2 = st.columns(2)
         return selected_filters, {
-            "ground_floor_area": {
-                "lb": c1.number_input("Lower Bound: ground_floor_area", value=0),
-                "ub": c2.number_input("Upper Bound: ground_floor_area", value=1000),
+            "GroundFloorArea": {
+                "lb": c1.number_input("Lower Bound: GroundFloorArea", value=0),
+                "ub": c2.number_input("Upper Bound: GroundFloorArea", value=1000),
             },
-            "living_area_percent": {
-                "lb": c1.number_input("Lower Bound: living_area_percent", value=5),
-                "ub": c2.number_input("Lower Bound: living_area_percent", value=90),
+            "LivingAreaPercent": {
+                "lb": c1.number_input("Lower Bound: LivingAreaPercent", value=5),
+                "ub": c2.number_input("Lower Bound: LivingAreaPercent", value=90),
             },
-            "main_sh_boiler_efficiency": {
+            "HSMainSystemEfficiency": {
                 "lb": c1.number_input(
-                    "Lower Bound: main_sh_boiler_efficiency", value=19
+                    "Lower Bound: HSMainSystemEfficiency", value=19
                 ),
                 "ub": c2.number_input(
-                    "Lower Bound: main_sh_boiler_efficiency", value=600
+                    "Lower Bound: HSMainSystemEfficiency", value=600
                 ),
             },
-            "main_hw_boiler_efficiency": {
+            "WHMainSystemEff": {
                 "lb": c1.number_input(
-                    "Lower Bound: main_hw_boiler_efficiency", value=19
+                    "Lower Bound: WHMainSystemEff", value=19
                 ),
                 "ub": c2.number_input(
-                    "Lower Bound: main_hw_boiler_efficiency", value=320
+                    "Lower Bound: WHMainSystemEff", value=320
                 ),
             },
-            "main_sh_boiler_efficiency_adjustment_factor": {
+            "HSEffAdjFactor": {
                 "lb": st.number_input(
-                    "Lower Bound: main_sh_boiler_efficiency_adjustment_factor",
+                    "Lower Bound: HSEffAdjFactor",
                     value=0.7,
                 ),
             },
-            "main_hw_boiler_efficiency_adjustment_factor": {
+            "WHEffAdjFactor": {
                 "lb": st.number_input(
-                    "Lower Bound: main_hw_boiler_efficiency_adjustment_factor",
+                    "Lower Bound: WHEffAdjFactor",
                     value=0.7,
                 ),
             },
-            "declared_loss_factor": {
+            "DeclaredLossFactor": {
                 "ub": st.number_input(
-                    "Upper Bound: declared_loss_factor",
+                    "Upper Bound: DeclaredLossFactor",
                     value=20,
                 ),
             },
-            "thermal_bridging_factor": {
-                "lb": c1.number_input("Lower Bound: thermal_bridging_factor", value=0),
+            "ThermalBridgingFactor": {
+                "lb": c1.number_input("Lower Bound: ThermalBridgingFactor", value=0),
                 "ub": c2.number_input(
-                    "Lower Bound: thermal_bridging_factor", value=0.15
+                    "Lower Bound: ThermalBridgingFactor", value=0.15
                 ),
             },
         }
@@ -130,22 +139,58 @@ def _unzip_bers(input_filepath: Path, output_filepath: Path) -> None:
     ZipFile(input_filepath).extractall(output_filepath)
 
 
+def _filter_bers(
+    input_filepath: Path, output_filepath: Path, filters: Dict[str, Any]
+) -> None:
+    bers = pd.read_csv(input_filepath, sep="\t")
+
+    conditions = [
+        "TypeofRating != 'Provisional    '",
+        f"GroundFloorArea > {filters['GroundFloorArea']['lb']}"
+        f"and GroundFloorArea < {filters['GroundFloorArea']['lb']}",
+        f"LivingAreaPercent > {filters['LivingAreaPercent']['lb']}"
+        f"or LivingAreaPercent < {filters['LivingAreaPercent']['ub']}",
+        f"HSMainSystemEfficiency > {filters['HSMainSystemEfficiency']['lb']}"
+        f"or HSMainSystemEfficiency < {filters['HSMainSystemEfficiency']['ub']}",
+        f"WHMainSystemEff > {filters['WHMainSystemEff']['lb']}"
+        f"or WHMainSystemEff < {filters['WHMainSystemEff']['ub']}",
+        f"HSEffAdjFactor > {filters['HSEffAdjFactor']['lb']}",
+        f"WHEffAdjFactor > {filters['WHEffAdjFactor']['lb']}",
+        f"DeclaredLossFactor < {filters['DeclaredLossFactor']['ub']}",
+        f"ThermalBridgingFactor > {filters['ThermalBridgingFactor']['lb']}"
+        f"or ThermalBridgingFactor <= {filters['ThermalBridgingFactor']['ub']}",
+    ]
+    query_str = " and ".join(["(" + c + ")" for c in conditions])
+    buildings_meeting_conditions = bers.query(query_str)
+
+    buildings_meeting_conditions.to_csv(output_filepath)
+
+
 def _generate_bers(
     data_dir: Path,
+    download_dir: Path,
     filename: str,
     selections: Dict[str, Any],
-    config: ConfigParser,
     defaults: Dict[str, Any],
 ) -> None:
     _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
-    _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
+    _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir)
+    _filter_bers(
+        data_dir / "BERPublicsearch" / "BERPublicsearch.txt",
+        data_dir / filename,
+        filters=selections["bounds"]
+    )
+    breakpoint()
+    copyfile(
+        data_dir / filename, download_dir / filename
+    )
 
 
 def main(
-    data_dir: Path = DATA_DIR,
-    download_dir: Path = DOWNLOAD_DIR,
-    config: ConfigParser = CONFIG,
-    defaults: Dict[str, Any] = DEFAULTS,
+    data_dir: Path = _get_data_dir(),
+    download_dir: Path = _get_streamlit_download_dir(),
+    config: ConfigParser = _get_config(),
+    defaults: Dict[str, Any] = _get_defaults(),
 ):
     st.markdown(
         """
@@ -177,9 +222,9 @@ def main(
         filename = f"BERPublicsearch-{today:%d-%m-%Y}.csv.gz"
         _generate_bers(
             data_dir=data_dir,
+            download_dir=download_dir,
             filename=filename,
             selections=selections,
-            config=config,
             defaults=defaults,
         )
         st.markdown(f"[{filename}](downloads/{filename})")
