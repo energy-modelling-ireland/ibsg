@@ -135,8 +135,8 @@ def _download_bers(form: Dict[str, str], savepath: Path) -> None:
             fout.write(chunk)
 
 
-def _unzip_bers(input_filepath: Path, output_filepath: Path) -> None:
-    ZipFile(input_filepath).extractall(output_filepath)
+def _unzip_bers(input_filepath: Path, output_dirpath: Path) -> None:
+    ZipFile(input_filepath).extractall(output_dirpath)
 
 
 def _filter_bers(

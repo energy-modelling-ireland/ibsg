@@ -67,8 +67,8 @@ def test_download_bers_is_mocked(
 
 
 def test_unzip_bers(sample_bers_zipped_filepath: Path, tmp_path: Path) -> None:
-    unzipped_filepath = tmp_path / "BERPublicsearch"
-    _unzip_bers(sample_bers_zipped_filepath, unzipped_filepath)
+    unzipped_filepath = tmp_path / "BERPublicsearch.txt" 
+    _unzip_bers(sample_bers_zipped_filepath, tmp_path)
     assert unzipped_filepath.exists()
 
 
