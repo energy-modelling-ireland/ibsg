@@ -6,6 +6,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
+from zipfile import ZipFile
 
 import requests
 from stqdm import stqdm
@@ -125,6 +126,10 @@ def _download_bers(form: Dict[str, str], savepath: Path) -> None:
             fout.write(chunk)
 
 
+def _unzip_bers(input_filepath: Path, output_filepath: Path) -> None:
+    ZipFile(input_filepath).extractall(output_filepath)
+
+
 def _generate_bers(
     data_dir: Path,
     filename: str,
@@ -133,6 +138,7 @@ def _generate_bers(
     defaults: Dict[str, Any],
 ) -> None:
     _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
+    _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
 
 
 def main(
