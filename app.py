@@ -1,5 +1,5 @@
+import csv
 from datetime import datetime
-from json import load
 from pathlib import Path
 from shutil import copyfile
 from typing import Any
@@ -13,23 +13,9 @@ import requests
 from stqdm import stqdm
 import streamlit as st
 
-
-def _get_data_dir() -> Path:
-    data_dir = Path(__file__).parent / "data"
-    if not data_dir.exists():
-        data_dir.mkdir()
-
-
-def _get_streamlit_download_dir() -> Path:
-    # workaround from streamlit/streamlit#400
-    download_dir = Path(st.__path__[0]) / "static" / "downloads"
-    if not download_dir.exists():
-        download_dir.mkdir()
-
-
-def _get_defaults() -> Dict[str, Any]:
-    with open("defaults.json") as f:
-        return load(f)
+from globals import get_data_dir
+from globals import get_streamlit_download_dir
+from globals import get_defaults
 
 
 def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
@@ -179,9 +165,9 @@ def _generate_bers(
 
 
 def main(
-    data_dir: Path = _get_data_dir(),
-    download_dir: Path = _get_streamlit_download_dir(),
-    defaults: Dict[str, Any] = _get_defaults(),
+    data_dir: Path = get_data_dir(),
+    download_dir: Path = get_streamlit_download_dir(),
+    defaults: Dict[str, Any] = get_defaults(),
 ):
     st.markdown(
         """
