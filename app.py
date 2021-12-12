@@ -118,6 +118,11 @@ def _unzip_bers(input_filepath: Path, output_dirpath: Path) -> None:
     ZipFile(input_filepath).extractall(output_dirpath)
 
 
+def _rename_bers_as_csv(input_filepath: Path) -> None:
+    csv_filename = input_filepath.with_suffix(".csv")
+    input_filepath.rename(csv_filename)
+
+
 def _filter_bers(
     input_filepath: Path, output_filepath: Path, filters: Dict[str, Any]
 ) -> None:
@@ -158,8 +163,9 @@ def _generate_bers(
 ) -> None:
     _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
     _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
+    _rename_bers_as_csv(data_dir / "BERPublicsearch" / "BERPublicsearch.txt")
     _filter_bers(
-        data_dir / "BERPublicsearch" / "BERPublicsearch.txt",
+        data_dir / "BERPublicsearch" / "BERPublicsearch.csv",
         data_dir / filename,
         filters=selections["bounds"]
     )

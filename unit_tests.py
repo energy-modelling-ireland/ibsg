@@ -4,12 +4,14 @@ import os
 from pathlib import Path
 from zipfile import ZipFile
 
+import numpy as np
 import pandas as pd
 import pytest
 import responses
 
 from app import _download_bers
 from app import _filter_bers
+from app import _rename_bers_as_csv
 from app import _unzip_bers
 from globals import get_defaults
 
@@ -89,3 +91,12 @@ def test_apply_filters_returns_nonempty_dataframe(
 
     output = pd.read_csv(output_filepath)
     assert len(output) > 0
+
+
+def test_rename_bers_as_csv(tmp_path: Path) -> None:
+    input_file = tmp_path / "BERPublicsearch.txt"
+    expected_output_file = tmp_path / "BERPublicsearch.csv"
+    with open(input_file, "w") as f:
+        f.writelines(["This is a test"])
+    _rename_bers_as_csv(input_file)
+    assert expected_output_file.exists()
