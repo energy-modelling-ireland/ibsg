@@ -2,6 +2,7 @@ from io import BytesIO
 import json
 import os
 from pathlib import Path
+from shutil import copyfile
 from zipfile import ZipFile
 
 import numpy as np
@@ -14,17 +15,31 @@ from app import _filter_bers
 from app import _rename_bers_as_csv
 from app import _unzip_bers
 from globals import get_defaults
+from globals import get_dtypes
 
 
 @pytest.fixture
-def sample_bers_filepath() -> str:
-    here = Path(__name__).parent
-    return here / "sample-BERPublicsearch.txt"
+def here() -> str:
+    return Path(__name__).parent
 
 
 @pytest.fixture
-def sample_bers(sample_bers_filepath: str) -> pd.DataFrame:
-    return pd.read_csv(sample_bers_filepath, sep="\t")
+def sample_berpublicsearch_txt(here: Path, tmp_path: Path) -> Path:
+    output_filepath = tmp_path/ "sample-BERPublicsearch.txt"
+    copyfile(here / "sample-BERPublicsearch.txt", output_filepath)
+    return output_filepath
+
+
+@pytest.fixture
+def sample_berpublicsearch_csv(sample_berpublicsearch_txt: Path, tmp_path: Path) -> Path:
+    output_filepath = tmp_path / "sample-BERPublicsearch.csv"
+    copyfile(sample_berpublicsearch_txt, output_filepath)
+    return output_filepath
+
+
+@pytest.fixture
+def sample_bers(sample_berpublicsearch_txt: Path) -> pd.DataFrame:
+    return pd.read_csv(sample_berpublicsearch_txt, sep="\t")
 
 
 @pytest.fixture
@@ -73,7 +88,7 @@ def test_unzip_bers(sample_bers_zipped_filepath: Path, tmp_path: Path) -> None:
 
 
 def test_apply_filters_returns_nonempty_dataframe(
-    sample_bers_filepath: str, tmp_path: Path
+    sample_berpublicsearch_csv: Path, tmp_path: Path
 ) -> None:
     filters = {
         "GroundFloorArea": {"lb": 0, "ub": 1000},
@@ -86,8 +101,9 @@ def test_apply_filters_returns_nonempty_dataframe(
         "ThermalBridgingFactor": {"lb": 0, "ub": 0.15},
     }
     output_filepath = tmp_path / "BERPublicsearch.csv.gz"
+    dtypes = get_dtypes()
 
-    _filter_bers(sample_bers_filepath, output_filepath, filters)
+    _filter_bers(sample_berpublicsearch_csv, output_filepath, filters, dtypes)
 
     output = pd.read_csv(output_filepath)
     assert len(output) > 0

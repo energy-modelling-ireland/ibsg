@@ -8,6 +8,7 @@ from typing import List
 from typing import Tuple
 from zipfile import ZipFile
 
+from fugue.workflow import FugueWorkflow
 import pandas as pd
 import requests
 from stqdm import stqdm
@@ -16,6 +17,7 @@ import streamlit as st
 from globals import get_data_dir
 from globals import get_streamlit_download_dir
 from globals import get_defaults
+from globals import get_dtypes
 
 
 def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
@@ -49,20 +51,12 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
                 "ub": c2.number_input("Lower Bound: LivingAreaPercent", value=90),
             },
             "HSMainSystemEfficiency": {
-                "lb": c1.number_input(
-                    "Lower Bound: HSMainSystemEfficiency", value=19
-                ),
-                "ub": c2.number_input(
-                    "Lower Bound: HSMainSystemEfficiency", value=600
-                ),
+                "lb": c1.number_input("Lower Bound: HSMainSystemEfficiency", value=19),
+                "ub": c2.number_input("Lower Bound: HSMainSystemEfficiency", value=600),
             },
             "WHMainSystemEff": {
-                "lb": c1.number_input(
-                    "Lower Bound: WHMainSystemEff", value=19
-                ),
-                "ub": c2.number_input(
-                    "Lower Bound: WHMainSystemEff", value=320
-                ),
+                "lb": c1.number_input("Lower Bound: WHMainSystemEff", value=19),
+                "ub": c2.number_input("Lower Bound: WHMainSystemEff", value=320),
             },
             "HSEffAdjFactor": {
                 "lb": st.number_input(
@@ -84,9 +78,7 @@ def _select_ber_filters() -> Tuple[List[str], Dict[str, Dict[str, int]]]:
             },
             "ThermalBridgingFactor": {
                 "lb": c1.number_input("Lower Bound: ThermalBridgingFactor", value=0),
-                "ub": c2.number_input(
-                    "Lower Bound: ThermalBridgingFactor", value=0.15
-                ),
+                "ub": c2.number_input("Lower Bound: ThermalBridgingFactor", value=0.15),
             },
         }
 
@@ -108,7 +100,7 @@ def _download_bers(form: Dict[str, str], savepath: Path) -> None:
         "write",
         miniters=1,
         desc=str(savepath),
-        total=int(response.headers.get('content-length', 0))
+        total=int(response.headers.get("content-length", 0)),
     ) as fout:
         for chunk in response.iter_content(chunk_size=4096):
             fout.write(chunk)
@@ -123,35 +115,67 @@ def _rename_bers_as_csv(input_filepath: Path) -> None:
     input_filepath.rename(csv_filename)
 
 
-def _filter_bers(
-    input_filepath: Path, output_filepath: Path, filters: Dict[str, Any]
-) -> None:
-    bers = pd.read_csv(
-        input_filepath,
-        sep="\t",
-        encoding="latin-1",
-        quoting=csv.QUOTE_NONE,
-    )
-    conditions = [
-        "TypeofRating != 'Provisional    '",
-        f"GroundFloorArea > {filters['GroundFloorArea']['lb']}"
-        f" and GroundFloorArea < {filters['GroundFloorArea']['ub']}",
-        f"LivingAreaPercent > {filters['LivingAreaPercent']['lb']}"
-        f" or LivingAreaPercent < {filters['LivingAreaPercent']['ub']}",
-        f"HSMainSystemEfficiency > {filters['HSMainSystemEfficiency']['lb']}"
-        f" or HSMainSystemEfficiency < {filters['HSMainSystemEfficiency']['ub']}",
-        f"WHMainSystemEff > {filters['WHMainSystemEff']['lb']}"
-        f" or WHMainSystemEff < {filters['WHMainSystemEff']['ub']}",
-        f"HSEffAdjFactor > {filters['HSEffAdjFactor']['lb']}",
-        f"WHEffAdjFactor > {filters['WHEffAdjFactor']['lb']}",
-        f"DeclaredLossFactor < {filters['DeclaredLossFactor']['ub']}",
-        f"ThermalBridgingFactor > {filters['ThermalBridgingFactor']['lb']}"
-        f" or ThermalBridgingFactor <= {filters['ThermalBridgingFactor']['ub']}",
-    ]
-    query_str = " and ".join(["(" + c + ")" for c in conditions])
-    buildings_meeting_conditions = bers.query(query_str)
+# schema: *
+def _query(df: pd.DataFrame, query_str: str) -> pd.DataFrame:
+    return df.query(query_str)
 
-    buildings_meeting_conditions.to_csv(output_filepath)
+
+def _filter_bers(
+    input_filepath: Path,
+    output_filepath: Path,
+    filters: Dict[str, Any],
+    dtypes: Dict[str,str],
+) -> None:
+    with FugueWorkflow() as dag:
+        bers = dag.load(
+            input_filepath,
+            sep="\t",
+            encoding="latin-1",
+            quoting=csv.QUOTE_NONE,
+            header=True,
+            dtype=dtypes,
+        )
+        clean_bers = (
+            bers.transform(_query, query_str="TypeofRating != 'Provisional    '")
+            .transform(
+                _query,
+                query_str=f"GroundFloorArea > {filters['GroundFloorArea']['lb']}"
+                f" and GroundFloorArea < {filters['GroundFloorArea']['ub']}",
+            )
+            .transform(
+                _query,
+                query_str=f"LivingAreaPercent > {filters['LivingAreaPercent']['lb']}"
+                f" or LivingAreaPercent < {filters['LivingAreaPercent']['ub']}",
+            )
+            .transform(
+                _query,
+                query_str=f"HSMainSystemEfficiency > {filters['HSMainSystemEfficiency']['lb']}"
+                f" or HSMainSystemEfficiency < {filters['HSMainSystemEfficiency']['ub']}",
+            )
+            .transform(
+                _query,
+                query_str=f"WHMainSystemEff > {filters['WHMainSystemEff']['lb']}"
+                f" or WHMainSystemEff < {filters['WHMainSystemEff']['ub']}",
+            )
+            .transform(
+                _query,
+                query_str=f"HSEffAdjFactor > {filters['HSEffAdjFactor']['lb']}",
+            )
+            .transform(
+                _query,
+                query_str=f"WHEffAdjFactor > {filters['WHEffAdjFactor']['lb']}",
+            )
+            .transform(
+                _query,
+                query_str=f"DeclaredLossFactor < {filters['DeclaredLossFactor']['ub']}",
+            )
+            .transform(
+                _query,
+                query_str=f"ThermalBridgingFactor > {filters['ThermalBridgingFactor']['lb']}"
+                f" or ThermalBridgingFactor <= {filters['ThermalBridgingFactor']['ub']}",
+            )
+        )
+        clean_bers.save(output_filepath, header=True, mode="overwrite")
 
 
 def _generate_bers(
@@ -160,6 +184,7 @@ def _generate_bers(
     filename: str,
     selections: Dict[str, Any],
     defaults: Dict[str, Any],
+    dtypes: Dict[str, str]
 ) -> None:
     _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
     _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
@@ -167,17 +192,17 @@ def _generate_bers(
     _filter_bers(
         data_dir / "BERPublicsearch" / "BERPublicsearch.csv",
         data_dir / filename,
-        filters=selections["bounds"]
+        filters=selections["bounds"],
+        dtypes=dtypes,
     )
-    copyfile(
-        data_dir / filename, download_dir / filename
-    )
+    copyfile(data_dir / filename, download_dir / filename)
 
 
 def main(
     data_dir: Path = get_data_dir(),
     download_dir: Path = get_streamlit_download_dir(),
     defaults: Dict[str, Any] = get_defaults(),
+    dtypes: Dict[str, str] = get_dtypes(),
 ):
     st.markdown(
         """
@@ -197,7 +222,7 @@ def main(
         help="""Extract only buildings in certain selected 'countyname' or postcodes
         such as 'Co. Dublin'""",
     )
-  
+
     selections["filters"], selections["bounds"] = _select_ber_filters()
     selections["download_filetype"] = st.selectbox(
         "Download format?",
@@ -213,9 +238,9 @@ def main(
             filename=filename,
             selections=selections,
             defaults=defaults,
+            dtypes=dtypes,
         )
         st.markdown(f"[{filename}](downloads/{filename})")
-
 
 
 if __name__ == "__main__":
