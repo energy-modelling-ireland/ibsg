@@ -153,7 +153,7 @@ def _generate_bers(
     defaults: Dict[str, Any],
 ) -> None:
     _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
-    _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir)
+    _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
     _filter_bers(
         data_dir / "BERPublicsearch" / "BERPublicsearch.txt",
         data_dir / filename,
