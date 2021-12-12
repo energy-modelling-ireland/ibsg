@@ -13,3 +13,7 @@ services:
     ports:
       - 8000:8000
     command: streamlit run app.py --server.port 8000
+    deploy:
+      resources:
+        limits:
+          memory: 1G
