@@ -4,6 +4,7 @@ from typing import Any
 from typing import Dict
 
 import streamlit as st
+import yaml
 
 
 def get_data_dir() -> Path:
@@ -23,4 +24,9 @@ def get_streamlit_download_dir() -> Path:
 
 def get_defaults() -> Dict[str, Any]:
     with open("defaults.json") as f:
+        return load(f)
+
+
+def get_dtypes() -> Dict[str, Any]:
+    with open("dtypes.json") as f:
         return load(f)
