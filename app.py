@@ -121,23 +121,27 @@ def _unzip_bers(input_filepath: Path, output_dirpath: Path) -> None:
 def _filter_bers(
     input_filepath: Path, output_filepath: Path, filters: Dict[str, Any]
 ) -> None:
-    bers = pd.read_csv(input_filepath, sep="\t")
-
+    bers = pd.read_csv(
+        input_filepath,
+        sep="\t",
+        encoding="latin-1",
+        quoting=csv.QUOTE_NONE,
+    )
     conditions = [
         "TypeofRating != 'Provisional    '",
         f"GroundFloorArea > {filters['GroundFloorArea']['lb']}"
-        f"and GroundFloorArea < {filters['GroundFloorArea']['lb']}",
+        f" and GroundFloorArea < {filters['GroundFloorArea']['ub']}",
         f"LivingAreaPercent > {filters['LivingAreaPercent']['lb']}"
-        f"or LivingAreaPercent < {filters['LivingAreaPercent']['ub']}",
+        f" or LivingAreaPercent < {filters['LivingAreaPercent']['ub']}",
         f"HSMainSystemEfficiency > {filters['HSMainSystemEfficiency']['lb']}"
-        f"or HSMainSystemEfficiency < {filters['HSMainSystemEfficiency']['ub']}",
+        f" or HSMainSystemEfficiency < {filters['HSMainSystemEfficiency']['ub']}",
         f"WHMainSystemEff > {filters['WHMainSystemEff']['lb']}"
-        f"or WHMainSystemEff < {filters['WHMainSystemEff']['ub']}",
+        f" or WHMainSystemEff < {filters['WHMainSystemEff']['ub']}",
         f"HSEffAdjFactor > {filters['HSEffAdjFactor']['lb']}",
         f"WHEffAdjFactor > {filters['WHEffAdjFactor']['lb']}",
         f"DeclaredLossFactor < {filters['DeclaredLossFactor']['ub']}",
         f"ThermalBridgingFactor > {filters['ThermalBridgingFactor']['lb']}"
-        f"or ThermalBridgingFactor <= {filters['ThermalBridgingFactor']['ub']}",
+        f" or ThermalBridgingFactor <= {filters['ThermalBridgingFactor']['ub']}",
     ]
     query_str = " and ".join(["(" + c + ")" for c in conditions])
     buildings_meeting_conditions = bers.query(query_str)

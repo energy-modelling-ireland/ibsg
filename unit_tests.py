@@ -11,11 +11,7 @@ import responses
 from app import _download_bers
 from app import _filter_bers
 from app import _unzip_bers
-
-
-with open("defaults.json") as f:
-    DEFAULTS = json.load(f)
-
+from globals import get_defaults
 
 
 @pytest.fixture
@@ -47,9 +43,10 @@ def sample_bers_zipped_filepath_bytes(sample_bers_zipped_filepath: Path) -> Byte
 def test_download_bers_is_mocked(
     tmp_path: Path, sample_bers_zipped_filepath_bytes: BytesIO
 ) -> None:
+    defaults = get_defaults()
     responses.add(
         responses.POST,
-        DEFAULTS["download"]["url"],
+        defaults["download"]["url"],
         body=sample_bers_zipped_filepath_bytes,
         content_type="application/x-zip-compressed",
         headers={
@@ -59,7 +56,7 @@ def test_download_bers_is_mocked(
     )
     expected_output = tmp_path / "BERPublicsearch.zip"
 
-    _download_bers(DEFAULTS["download"], savepath=expected_output)
+    _download_bers(defaults["download"], savepath=expected_output)
 
     assert expected_output.exists()
 
@@ -73,7 +70,9 @@ def test_unzip_bers(sample_bers_zipped_filepath: Path, tmp_path: Path) -> None:
     assert unzipped_filepath.exists()
 
 
-def test_apply_filters(sample_bers_filepath: str, tmp_path: Path) -> None:
+def test_apply_filters_returns_nonempty_dataframe(
+    sample_bers_filepath: str, tmp_path: Path
+) -> None:
     filters = {
         "GroundFloorArea": {"lb": 0, "ub": 1000},
         "LivingAreaPercent": {"lb": 5, "ub": 90},
@@ -88,4 +87,5 @@ def test_apply_filters(sample_bers_filepath: str, tmp_path: Path) -> None:
 
     _filter_bers(sample_bers_filepath, output_filepath, filters)
 
-    assert output_filepath.exists()
+    output = pd.read_csv(output_filepath)
+    assert len(output) > 0
