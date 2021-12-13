@@ -1,13 +1,9 @@
-from io import BytesIO
-import json
 from pathlib import Path
 from time import sleep
-from zipfile import ZipFile
 
 import pandas as pd
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-import responses
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
@@ -25,25 +21,12 @@ def browser() -> webdriver.Remote:
     browser.quit()
 
 
-@pytest.fixture
-def zipped_bers(tmp_path: Path) -> BytesIO:
-    bers = pd.read_csv("sample-BERPublicsearch.txt", sep="\t")
-    content = bers.to_csv(index=False, sep="\t")
-    file = BytesIO()
-    with ZipFile(file, "w") as zf:
-        zf.writestr("BERPublicsearch.txt", content)
-    return file.getvalue()
-
-
-@responses.activate
 def test_user_can_download_default_bers(
     browser: webdriver.Remote,
-    zipped_bers: BytesIO,
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
     monkeypatch_download_bers: None,
 ) -> None:
-    defaults = app.get_defaults()
     monkeypatch.setattr(globals, "get_streamlit_download_dir", lambda: tmp_path)
     monkeypatch.setattr(globals, "get_data_dir", lambda: tmp_path)
     expected_output = tmp_path / "BERPublicsearch.csv.gz"
@@ -71,23 +54,11 @@ def _find_file_matching_pattern(dirpath: Path, pattern: str) -> Path:
     return matching_files[0]
 
 
-@responses.activate
 def test_main(
-    zipped_bers: BytesIO,
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
+    monkeypatch_download_bers: None,
 ) -> None:
-    defaults = app.get_defaults()
-    responses.add(
-        responses.POST,
-        defaults["download"]["url"],
-        body=zipped_bers,
-        content_type="application/x-zip-compressed",
-        headers={
-            "content-disposition": "attachment; filename=BERPublicSearch.zip"
-        },
-        status=200,
-    )
     monkeypatch.setattr(app.st, "button", lambda click: True)
     data_dir = tmp_path / "data"
     data_dir.mkdir()
