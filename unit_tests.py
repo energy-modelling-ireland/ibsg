@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-import dask.dataframe as dd
+import pandas as pd
 
 from app import _download_bers
 from app import _filter_bers
@@ -35,8 +35,8 @@ def test_apply_filters_returns_nonempty_dataframe(
 
     _filter_bers(sample_berpublicsearch_txt, output_filepath, filters, dtypes)
 
-    output = dd.read_csv(output_filepath, compression="gzip")
-    assert len(output) > 0
+    output = pd.read_csv(output_filepath, compression="gzip")
+    assert len(output) == 98
 
 
 def test_rename_bers_as_csv(tmp_path: Path) -> None:
