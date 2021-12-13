@@ -173,16 +173,22 @@ def _generate_bers(
     defaults: Dict[str, Any],
     dtypes: Dict[str, str],
 ) -> None:
-    _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
-    _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
-    _rename_bers_as_csv(data_dir / "BERPublicsearch" / "BERPublicsearch.txt")
-    _filter_bers(
-        data_dir / "BERPublicsearch" / "BERPublicsearch.csv",
-        data_dir / filename,
-        filters=selections["bounds"],
-        dtypes=dtypes,
-    )
-    copyfile(data_dir / filename, download_dir / filename)
+    with st.spinner("Downloading `BERPublicsearch.zip` from `ndber.seai.ie` ..."):
+        _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
+    
+    with st.spinner("Unzipping `BERPublicsearch.zip` ..."):
+        _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
+    
+    with st.spinner("Filtering BERs ..."):
+        _filter_bers(
+            data_dir / "BERPublicsearch" / "BERPublicsearch.txt",
+            data_dir / filename,
+            filters=selections["bounds"],
+            dtypes=dtypes,
+        )
+    
+    with st.spinner("Saving BERs ..."):
+        copyfile(data_dir / filename, download_dir / filename)
 
 
 def main(
