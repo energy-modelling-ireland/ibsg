@@ -21,6 +21,7 @@ def browser() -> webdriver.Remote:
     browser.quit()
 
 
+@pytest.mark.xfail
 def test_user_can_download_default_bers(
     browser: webdriver.Remote,
     monkeypatch: MonkeyPatch,
@@ -44,7 +45,7 @@ def test_user_can_download_default_bers(
 
     ## Force browser to scroll down to download button
     browser.execute_script("arguments[0].scrollIntoView();", download_button)
-
+    
     # The filtered BERs appear in his downloads folder
     assert expected_output.exists()
 
