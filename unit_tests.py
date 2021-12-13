@@ -5,6 +5,7 @@ from pathlib import Path
 from shutil import copyfile
 from zipfile import ZipFile
 
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import pytest
@@ -31,13 +32,6 @@ def sample_berpublicsearch_txt(here: Path, tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def sample_berpublicsearch_csv(sample_berpublicsearch_txt: Path, tmp_path: Path) -> Path:
-    output_filepath = tmp_path / "sample-BERPublicsearch.csv"
-    copyfile(sample_berpublicsearch_txt, output_filepath)
-    return output_filepath
-
-
-@pytest.fixture
 def sample_bers(sample_berpublicsearch_txt: Path) -> pd.DataFrame:
     return pd.read_csv(sample_berpublicsearch_txt, sep="\t")
 
@@ -56,21 +50,12 @@ def sample_bers_zipped_filepath_bytes(sample_bers_zipped_filepath: Path) -> Byte
     return ZipFile(sample_bers_zipped_filepath).read("BERPublicsearch.txt")
 
 
-@responses.activate
 def test_download_bers_is_mocked(
-    tmp_path: Path, sample_bers_zipped_filepath_bytes: BytesIO
+    tmp_path: Path,
+    sample_bers_zipped_filepath_bytes: BytesIO,
+    monkeypatch_download_bers: None,
 ) -> None:
     defaults = get_defaults()
-    responses.add(
-        responses.POST,
-        defaults["download"]["url"],
-        body=sample_bers_zipped_filepath_bytes,
-        content_type="application/x-zip-compressed",
-        headers={
-            "content-disposition": "attachment; filename=BERPublicSearch.zip"
-        },
-        status=200,
-    )
     expected_output = tmp_path / "BERPublicsearch.zip"
 
     _download_bers(defaults["download"], savepath=expected_output)
@@ -88,7 +73,7 @@ def test_unzip_bers(sample_bers_zipped_filepath: Path, tmp_path: Path) -> None:
 
 
 def test_apply_filters_returns_nonempty_dataframe(
-    sample_berpublicsearch_csv: Path, tmp_path: Path
+    sample_berpublicsearch_txt: Path, tmp_path: Path
 ) -> None:
     filters = {
         "GroundFloorArea": {"lb": 0, "ub": 1000},
@@ -103,9 +88,9 @@ def test_apply_filters_returns_nonempty_dataframe(
     output_filepath = tmp_path / "BERPublicsearch.csv.gz"
     dtypes = get_dtypes()
 
-    _filter_bers(sample_berpublicsearch_csv, output_filepath, filters, dtypes)
+    _filter_bers(sample_berpublicsearch_txt, output_filepath, filters, dtypes)
 
-    output = pd.read_csv(output_filepath)
+    output = dd.read_csv(output_filepath, compression="gzip")
     assert len(output) > 0
 
 
@@ -116,3 +101,17 @@ def test_rename_bers_as_csv(tmp_path: Path) -> None:
         f.writelines(["This is a test"])
     _rename_bers_as_csv(input_file)
     assert expected_output_file.exists()
+
+
+def test_download_bers_is_monkeypatched(
+    monkeypatch_download_bers: None, tmp_path: Path
+) -> None:
+    defaults = get_defaults()
+    expected_output = tmp_path / "BERPublicsearch.zip"
+
+    _download_bers(defaults["download"], savepath=expected_output)
+
+    assert expected_output.exists()
+
+    # 115686 is the number of bytes corresponding to the test sample of 100 rows 
+    assert os.path.getsize(expected_output) == 115686

@@ -84,5 +84,20 @@
             "__EVENTVALIDATION": "/wEdAAPEuLD//Lrnct58vIDU2Hx9Xw+uRy4COswXgj8OGX6Nym8pc/9FsasLndkJePd0e319WvmW++umNulm4SeWaVFh1FOy2200t0nXvcBQEo5kHw==",
             "ctl00$DefaultContent$BERSearch$dfExcelDownlaod$DownloadAllData": "Download All Data"
         }
+    },
+    "mock-download-response": {
+        "headers": {
+            "Cache-Control": "private",
+            "Content-Length": "115686",
+            "Content-Type": "application/x-zip-compressed",
+            "Server": "Microsoft-IIS/8.0",
+            "X-AspNet-Version": "4.0.30319",
+            "Content-Disposition": "attachment; filename=BERPublicSearch.zip",
+            "Strict-Transport-Security": "max-age=15552001; includeSubDomains;",
+            "X-Frame-Options": "SAMEORIGIN",
+            "X-XSS-Protection": "1; mode=block",
+            "X-Content-Type-Options": "nosniff",
+            "Date": "Mon, 01 Jan 2000 00:00:00 GMT"
+        }
     }
 }

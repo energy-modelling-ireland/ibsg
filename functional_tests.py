@@ -41,18 +41,9 @@ def test_user_can_download_default_bers(
     zipped_bers: BytesIO,
     monkeypatch: MonkeyPatch,
     tmp_path: Path,
+    monkeypatch_download_bers: None,
 ) -> None:
     defaults = app.get_defaults()
-    responses.add(
-        responses.POST,
-        defaults["download"]["url"],
-        body=zipped_bers,
-        content_type="application/x-zip-compressed",
-        headers={
-            "content-disposition": "attachment; filename=BERPublicSearch.zip"
-        },
-        status=200,
-    )
     monkeypatch.setattr(globals, "get_streamlit_download_dir", lambda: tmp_path)
     monkeypatch.setattr(globals, "get_data_dir", lambda: tmp_path)
     expected_output = tmp_path / "BERPublicsearch.csv.gz"
