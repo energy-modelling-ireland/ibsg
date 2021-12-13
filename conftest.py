@@ -35,19 +35,10 @@ def sample_berpublicsearch_zip(
 
 
 @pytest.fixture
-def sample_berpublicsearch_zip_bytes(tmp_path: Path) -> BytesIO:
-    bers = pd.read_csv("sample-BERPublicsearch.txt", sep="\t")
-    content = bers.to_csv(index=False, sep="\t")
-    file = BytesIO()
-    with ZipFile(file, "w") as zf:
-        zf.writestr("BERPublicsearch.txt", content)
-    return file.getvalue()
-
-
-@pytest.fixture
-def zipped_sample_bers(sample_berpublicsearch_txt: Path) -> BytesIO:
-    bers = pd.read_csv(sample_berpublicsearch_txt, sep="\t")
-    content = bers.to_csv(index=False, sep="\t")
+def sample_berpublicsearch_zip_bytes(
+    sample_berpublicsearch_df: pd.DataFrame
+) -> BytesIO:
+    content = sample_berpublicsearch_df.to_csv(index=False, sep="\t")
     file = BytesIO()
     with ZipFile(file, "w") as zf:
         zf.writestr("BERPublicsearch.txt", content)
