@@ -8,7 +8,7 @@ from typing import List
 from typing import Tuple
 from zipfile import ZipFile
 
-from fugue.workflow import FugueWorkflow
+import dask.dataframe as dd
 import pandas as pd
 import requests
 from stqdm import stqdm
@@ -115,67 +115,54 @@ def _rename_bers_as_csv(input_filepath: Path) -> None:
     input_filepath.rename(csv_filename)
 
 
-# schema: *
-def _query(df: pd.DataFrame, query_str: str) -> pd.DataFrame:
-    return df.query(query_str)
-
-
 def _filter_bers(
     input_filepath: Path,
     output_filepath: Path,
     filters: Dict[str, Any],
-    dtypes: Dict[str,str],
+    dtypes: Dict[str, str],
 ) -> None:
-    with FugueWorkflow() as dag:
-        bers = dag.load(
-            input_filepath,
-            sep="\t",
-            encoding="latin-1",
-            quoting=csv.QUOTE_NONE,
-            header=True,
-            dtype=dtypes,
+    bers = dd.read_csv(
+        input_filepath,
+        sep="\t",
+        encoding="latin-1",
+        quoting=csv.QUOTE_NONE,
+        dtype=dtypes,
+    )
+    clean_bers = (
+        bers.query("TypeofRating != 'Provisional    '")
+        .query(
+            f"GroundFloorArea > {filters['GroundFloorArea']['lb']}"
+            f" and GroundFloorArea < {filters['GroundFloorArea']['ub']}",
         )
-        clean_bers = (
-            bers.transform(_query, query_str="TypeofRating != 'Provisional    '")
-            .transform(
-                _query,
-                query_str=f"GroundFloorArea > {filters['GroundFloorArea']['lb']}"
-                f" and GroundFloorArea < {filters['GroundFloorArea']['ub']}",
-            )
-            .transform(
-                _query,
-                query_str=f"LivingAreaPercent > {filters['LivingAreaPercent']['lb']}"
-                f" or LivingAreaPercent < {filters['LivingAreaPercent']['ub']}",
-            )
-            .transform(
-                _query,
-                query_str=f"HSMainSystemEfficiency > {filters['HSMainSystemEfficiency']['lb']}"
-                f" or HSMainSystemEfficiency < {filters['HSMainSystemEfficiency']['ub']}",
-            )
-            .transform(
-                _query,
-                query_str=f"WHMainSystemEff > {filters['WHMainSystemEff']['lb']}"
-                f" or WHMainSystemEff < {filters['WHMainSystemEff']['ub']}",
-            )
-            .transform(
-                _query,
-                query_str=f"HSEffAdjFactor > {filters['HSEffAdjFactor']['lb']}",
-            )
-            .transform(
-                _query,
-                query_str=f"WHEffAdjFactor > {filters['WHEffAdjFactor']['lb']}",
-            )
-            .transform(
-                _query,
-                query_str=f"DeclaredLossFactor < {filters['DeclaredLossFactor']['ub']}",
-            )
-            .transform(
-                _query,
-                query_str=f"ThermalBridgingFactor > {filters['ThermalBridgingFactor']['lb']}"
-                f" or ThermalBridgingFactor <= {filters['ThermalBridgingFactor']['ub']}",
-            )
+        .query(
+            f"LivingAreaPercent > {filters['LivingAreaPercent']['lb']}"
+            f" or LivingAreaPercent < {filters['LivingAreaPercent']['ub']}",
         )
-        clean_bers.save(output_filepath, header=True, mode="overwrite")
+        .query(
+            f"HSMainSystemEfficiency > {filters['HSMainSystemEfficiency']['lb']}"
+            f" or HSMainSystemEfficiency < {filters['HSMainSystemEfficiency']['ub']}",
+        )
+        .query(
+            f"WHMainSystemEff > {filters['WHMainSystemEff']['lb']}"
+            f" or WHMainSystemEff < {filters['WHMainSystemEff']['ub']}",
+        )
+        .query(
+            f"HSEffAdjFactor > {filters['HSEffAdjFactor']['lb']}",
+        )
+        .query(
+            f"WHEffAdjFactor > {filters['WHEffAdjFactor']['lb']}",
+        )
+        .query(
+            f"DeclaredLossFactor < {filters['DeclaredLossFactor']['ub']}",
+        )
+        .query(
+            f"ThermalBridgingFactor > {filters['ThermalBridgingFactor']['lb']}"
+            f" or ThermalBridgingFactor <= {filters['ThermalBridgingFactor']['ub']}",
+        )
+    )
+    clean_bers.to_csv(
+        output_filepath, header=True, single_file=True, compression="gzip", index=False
+    )
 
 
 def _generate_bers(
@@ -184,7 +171,7 @@ def _generate_bers(
     filename: str,
     selections: Dict[str, Any],
     defaults: Dict[str, Any],
-    dtypes: Dict[str, str]
+    dtypes: Dict[str, str],
 ) -> None:
     _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
     _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
@@ -240,7 +227,7 @@ def main(
             defaults=defaults,
             dtypes=dtypes,
         )
-        st.markdown(f"[{filename}](downloads/{filename})")
+        st.info(f"[{filename}](downloads/{filename})")
 
 
 if __name__ == "__main__":
