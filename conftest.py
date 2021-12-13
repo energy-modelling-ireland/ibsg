@@ -11,7 +11,7 @@ from globals import get_defaults
 
 
 @pytest.fixture
-def sample_berpublicsearch_txt(here: Path, tmp_path: Path) -> Path:
+def sample_berpublicsearch_txt(tmp_path: Path) -> Path:
     here = Path(__file__).parent.resolve()
     output_filepath = tmp_path / "sample-BERPublicsearch.txt"
     copyfile(here / "sample-BERPublicsearch.txt", output_filepath)
@@ -56,14 +56,14 @@ def zipped_sample_bers(sample_berpublicsearch_txt: Path) -> BytesIO:
 
 @pytest.fixture
 def monkeypatch_download_bers(
-    sample_berpublicsearch_zip: BytesIO,
+    sample_berpublicsearch_zip_bytes: BytesIO,
     responses: RequestsMock,
 ) -> None:
     defaults = get_defaults()
     responses.add(
         responses.POST,
         defaults["download"]["url"],
-        body=sample_berpublicsearch_zip,
+        body=sample_berpublicsearch_zip_bytes,
         headers=defaults["mock-download-response"]["headers"],
         status=200,
     )
