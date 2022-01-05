@@ -1,11 +1,6 @@
 version: "3.7"
 
 services:
-  selenium:
-    image: selenium/standalone-chrome:4.1.0-20211123
-    ports:
-      - 4444:4444
-      - 7900:7900
   web:
     build: .
     volumes:
