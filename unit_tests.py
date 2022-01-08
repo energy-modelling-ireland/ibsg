@@ -3,10 +3,12 @@ from pathlib import Path
 
 import pandas as pd
 
+import app
 from app import _download_bers
 from app import _filter_bers
 from app import _rename_bers_as_csv
 from app import _unzip_bers
+from app import main
 from globals import get_defaults
 from globals import get_dtypes
 
@@ -60,3 +62,30 @@ def test_download_bers_is_monkeypatched(
 
     # 115686 is the number of bytes corresponding to the test sample of 100 rows 
     assert os.path.getsize(expected_output) == 115686
+
+
+def _find_file_matching_pattern(dirpath: Path, pattern: str) -> Path:
+    matching_files = [f for f in dirpath.glob(pattern)]
+    return matching_files[0]
+
+
+def test_main(
+    tmp_path: Path,
+    monkeypatch_download_bers: None,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(app.st, "button", lambda x: True)
+    data_dir = tmp_path / "data"
+    data_dir.mkdir()
+    download_dir = tmp_path / "downloads"
+    download_dir.mkdir()
+    
+    main(data_dir=data_dir, download_dir=download_dir)
+
+    expected_output = _find_file_matching_pattern(
+        download_dir, "BERPublicsearch-*-*-*.csv.gz"
+    )
+    # The filtered BERs appear in his downloads folder
+    assert expected_output.exists()
+    # The filtered BERs are nonempty
+    assert len(pd.read_csv(expected_output)) > 0
