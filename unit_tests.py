@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from shutil import copyfile
 
 import pandas as pd
 
@@ -89,3 +90,30 @@ def test_main(
     assert expected_output.exists()
     # The filtered BERs are nonempty
     assert len(pd.read_csv(expected_output)) > 0
+
+
+def test_main_on_large_data(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    here = Path(__file__).parent.resolve()
+    data_dir = here / "data"
+    unzipped_bers = _find_file_matching_pattern(
+        data_dir, "BERPublicsearch-*-*-*"
+    )
+    # if have downloaded the data to data/ ... 
+    if unzipped_bers.exists():
+        monkeypatch.setattr(app.st, "button", lambda x: True)
+        monkeypatch.setattr(app, "_download_bers", None)
+        download_dir = tmp_path / "downloads"
+        download_dir.mkdir()
+
+        main(data_dir=data_dir, download_dir=download_dir)
+
+        expected_output = _find_file_matching_pattern(
+            download_dir, "BERPublicsearch-*-*-*.csv.gz"
+        )
+        # The filtered BERs appear in his downloads folder
+        assert expected_output.exists()
+        # The filtered BERs are nonempty
+        assert len(pd.read_csv(expected_output)) > 0
