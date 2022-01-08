@@ -168,27 +168,32 @@ def _filter_bers(
 def _generate_bers(
     data_dir: Path,
     download_dir: Path,
-    filename: str,
     selections: Dict[str, Any],
     defaults: Dict[str, Any],
     dtypes: Dict[str, str],
 ) -> None:
-    with st.spinner("Downloading `BERPublicsearch.zip` from `ndber.seai.ie` ..."):
-        _download_bers(defaults["download"], data_dir / "BERPublicsearch.zip")
+    today = datetime.today()
+    filename = f"BERPublicsearch-{today:%d-%m-%Y}"
+    zipped_bers = data_dir / f"{filename}.zip"
+    unzipped_bers = data_dir / filename
+    raw_bers = data_dir / filename / "BERPublicsearch.txt"
+    clean_bers = download_dir / f"{filename}.csv.gz"
+
+    if not zipped_bers.exists():
+        with st.spinner(f"Downloading `{zipped_bers}` from `ndber.seai.ie` ..."):
+            _download_bers(defaults["download"], zipped_bers)
+        with st.spinner(f"Unzipping `{zipped_bers}` ..."):
+            _unzip_bers(zipped_bers, unzipped_bers)
     
-    with st.spinner("Unzipping `BERPublicsearch.zip` ..."):
-        _unzip_bers(data_dir / "BERPublicsearch.zip", data_dir / "BERPublicsearch")
-    
-    with st.spinner("Filtering BERs ..."):
+    with st.spinner(f"Filtering BERs & saving to {clean_bers} ..."):
         _filter_bers(
-            data_dir / "BERPublicsearch" / "BERPublicsearch.txt",
-            data_dir / filename,
+            raw_bers,
+            clean_bers,
             filters=selections["bounds"],
             dtypes=dtypes,
         )
     
-    with st.spinner("Saving BERs ..."):
-        copyfile(data_dir / filename, download_dir / filename)
+    st.info(f"[{filename}](downloads/{filename})")
 
 
 def main(
@@ -223,17 +228,13 @@ def main(
         help="You might need to install 7zip to unzip '.csv.gz' (see hints)",
     )
     if st.button("Download?"):
-        today = datetime.today()
-        filename = f"BERPublicsearch-{today:%d-%m-%Y}.csv.gz"
         _generate_bers(
             data_dir=data_dir,
             download_dir=download_dir,
-            filename=filename,
             selections=selections,
             defaults=defaults,
             dtypes=dtypes,
         )
-        st.info(f"[{filename}](downloads/{filename})")
 
 
 if __name__ == "__main__":
