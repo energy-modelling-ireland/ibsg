@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from shutil import copyfile
+import shutil
 
 import pandas as pd
 
@@ -14,6 +15,11 @@ from globals import get_defaults
 from globals import get_dtypes
 
 
+def _find_file_matching_pattern(dirpath: Path, pattern: str) -> Path:
+    matching_files = [f for f in dirpath.glob(pattern)]
+    return matching_files[0]
+
+
 def test_unzip_bers(sample_berpublicsearch_zip: Path, tmp_path: Path) -> None:
     unzipped_filepath = tmp_path / "BERPublicsearch.txt" 
     _unzip_bers(sample_berpublicsearch_zip, tmp_path)
@@ -21,7 +27,7 @@ def test_unzip_bers(sample_berpublicsearch_zip: Path, tmp_path: Path) -> None:
 
 
 def test_apply_filters_returns_nonempty_dataframe(
-    sample_berpublicsearch_txt: Path, tmp_path: Path
+    sample_berpublicsearch_csv: Path, tmp_path: Path
 ) -> None:
     filters = {
         "GroundFloorArea": {"lb": 0, "ub": 1000},
@@ -36,10 +42,36 @@ def test_apply_filters_returns_nonempty_dataframe(
     output_filepath = tmp_path / "BERPublicsearch.csv.gz"
     dtypes = get_dtypes()
 
-    _filter_bers(sample_berpublicsearch_txt, output_filepath, filters, dtypes)
+    _filter_bers(sample_berpublicsearch_csv, output_filepath, filters, dtypes)
 
     output = pd.read_csv(output_filepath, compression="gzip")
     assert len(output) == 98
+
+
+def test_apply_filters_returns_nonempty_dataframe_on_large_data(
+    tmp_path: Path
+) -> None:
+    filters = {
+        "GroundFloorArea": {"lb": 0, "ub": 1000},
+        "LivingAreaPercent": {"lb": 5, "ub": 90},
+        "HSMainSystemEfficiency": {"lb": 19, "ub": 600},
+        "WHMainSystemEff": {"lb": 19, "ub": 320},
+        "HSEffAdjFactor": {"lb": 0.7},
+        "WHEffAdjFactor": {"lb": 0.7},
+        "DeclaredLossFactor": {"ub": 20},
+        "ThermalBridgingFactor": {"lb": 0, "ub": 0.15},
+    }
+    output_filepath = tmp_path / "BERPublicsearch.csv.gz"
+    dtypes = get_dtypes()
+    here = Path(__file__).parent.resolve()
+    data_dir = here / "data"
+    unzipped_bers = _find_file_matching_pattern(
+        data_dir, "BERPublicsearch-*-*-*"
+    )
+    if unzipped_bers:
+        raw_bers = unzipped_bers / "BERPublicsearch.txt"
+        _filter_bers(raw_bers, output_filepath, filters, dtypes)
+        assert output_filepath.exists()
 
 
 def test_rename_bers_as_csv(tmp_path: Path) -> None:
@@ -63,11 +95,6 @@ def test_download_bers_is_monkeypatched(
 
     # 115686 is the number of bytes corresponding to the test sample of 100 rows 
     assert os.path.getsize(expected_output) == 115686
-
-
-def _find_file_matching_pattern(dirpath: Path, pattern: str) -> Path:
-    matching_files = [f for f in dirpath.glob(pattern)]
-    return matching_files[0]
 
 
 def test_main(
@@ -96,19 +123,19 @@ def test_main_on_large_data(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    here = Path(__file__).parent.resolve()
-    data_dir = here / "data"
-    unzipped_bers = _find_file_matching_pattern(
-        data_dir, "BERPublicsearch-*-*-*"
-    )
+
     # if have downloaded the data to data/ ... 
     if unzipped_bers.exists():
         monkeypatch.setattr(app.st, "button", lambda x: True)
         monkeypatch.setattr(app, "_download_bers", None)
         download_dir = tmp_path / "downloads"
         download_dir.mkdir()
+        shutil.copytree(unzipped_bers, download_dir)
+        os.rename(
+            download_dir / "BERPublicsearch.txt", download_dir / "BERPublicsearch.csv"
+        )
 
-        main(data_dir=data_dir, download_dir=download_dir)
+        main(data_dir=tmp_path, download_dir=download_dir)
 
         expected_output = _find_file_matching_pattern(
             download_dir, "BERPublicsearch-*-*-*.csv.gz"
