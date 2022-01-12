@@ -74,15 +74,6 @@ def test_apply_filters_returns_nonempty_dataframe_on_large_data(
         assert output_filepath.exists()
 
 
-def test_rename_bers_as_csv(tmp_path: Path) -> None:
-    input_file = tmp_path / "BERPublicsearch.txt"
-    expected_output_file = tmp_path / "BERPublicsearch.csv"
-    with open(input_file, "w") as f:
-        f.writelines(["This is a test"])
-    _rename_bers_as_csv(input_file)
-    assert expected_output_file.exists()
-
-
 def test_download_bers_is_monkeypatched(
     monkeypatch_download_bers: None, tmp_path: Path
 ) -> None:
@@ -99,7 +90,7 @@ def test_download_bers_is_monkeypatched(
 
 def test_main(
     tmp_path: Path,
-    monkeypatch_download_bers: None,
+    monkeypatch_download_bers,
     monkeypatch,
 ) -> None:
     monkeypatch.setattr(app.st, "button", lambda x: True)
@@ -117,30 +108,3 @@ def test_main(
     assert expected_output.exists()
     # The filtered BERs are nonempty
     assert len(pd.read_csv(expected_output)) > 0
-
-
-def test_main_on_large_data(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-
-    # if have downloaded the data to data/ ... 
-    if unzipped_bers.exists():
-        monkeypatch.setattr(app.st, "button", lambda x: True)
-        monkeypatch.setattr(app, "_download_bers", None)
-        download_dir = tmp_path / "downloads"
-        download_dir.mkdir()
-        shutil.copytree(unzipped_bers, download_dir)
-        os.rename(
-            download_dir / "BERPublicsearch.txt", download_dir / "BERPublicsearch.csv"
-        )
-
-        main(data_dir=tmp_path, download_dir=download_dir)
-
-        expected_output = _find_file_matching_pattern(
-            download_dir, "BERPublicsearch-*-*-*.csv.gz"
-        )
-        # The filtered BERs appear in his downloads folder
-        assert expected_output.exists()
-        # The filtered BERs are nonempty
-        assert len(pd.read_csv(expected_output)) > 0
