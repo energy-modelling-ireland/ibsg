@@ -27,7 +27,7 @@ def test_unzip_bers(sample_berpublicsearch_zip: Path, tmp_path: Path) -> None:
 
 
 def test_apply_filters_returns_nonempty_dataframe(
-    sample_berpublicsearch_csv: Path, tmp_path: Path
+    sample_berpublicsearch_txt: Path, tmp_path: Path
 ) -> None:
     filters = {
         "GroundFloorArea": {"lb": 0, "ub": 1000},
@@ -42,7 +42,7 @@ def test_apply_filters_returns_nonempty_dataframe(
     output_filepath = tmp_path / "BERPublicsearch.csv.gz"
     dtypes = get_dtypes()
 
-    _filter_bers(sample_berpublicsearch_csv, output_filepath, filters, dtypes)
+    _filter_bers(sample_berpublicsearch_txt, output_filepath, filters, dtypes)
 
     output = pd.read_csv(output_filepath, compression="gzip")
     assert len(output) == 98
