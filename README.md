@@ -1,46 +1,25 @@
 # Irish Building Stock Generator (IBSG)
 
-> ⚠️ This web application does not download the Postcode Building Energy Rating internally but rather uses an extract in `parquet` format (for faster io) that requires a manual update.  
-
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/energy-modelling-ireland/ibsg/main/app.py)
-
-Generate a standardised building stock at postcode or small area level in your browser.
-
-If you have any problems or questions:
-- Chat with us on [Gitter](https://gitter.im/energy-modelling-ireland/ibsg)
-- Or raise an issue on our [Github](https://github.com/energy-modelling-ireland/ibsg) 
+Generate a standardised Irish building stock in your browser.
 
 ## Setup
 
-- (Recommended) Setup & activate a local virtual environment:
-    - `conda` via [Anaconda](https://www.anaconda.com/products/individual), [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [miniforge](https://github.com/conda-forge/miniforge)
-    - or [`poetry`](https://github.com/python-poetry/poetry)
-    - or `virtualenv` (no installation required, see [guide](https://pythonbasics.org/virtualenv/))
+- Clone this repository locally & open it
 
-- Install locally:
+- Install via [`poetry`](https://github.com/python-poetry/poetry)
+        
+    ```bash
+    poetry install
+    ```
 
-```bash
-pip install .
-```
+- Or install via [`docker`](https://docker.com)
 
-or
-```bash
-conda create -f ibsg.environment.yml
-```
-
-or for developers
-```bash
-conda create -f ibsg.environment.env.yml
-```
-
-- Create folder/file `.streamlit/secrets.toml` and add:
-
-```toml
-STREAMLIT_SHARING=""
-```
+    ```bash
+    docker-compose up --rm run app bash
+    ```
 
 - Run:
 
-```bash
-streamlit run app.py
-```
+    ```bash
+    streamlit run app.py
+    ```
