@@ -121,47 +121,9 @@ def _filter_bers(
     filters: Dict[str, Any],
     dtypes: Dict[str, str],
 ) -> None:
-    bers = dd.read_csv(
-        input_filepath,
-        sep="\t",
-        encoding="latin-1",
-        quoting=csv.QUOTE_NONE,
-        dtype=dtypes,
-    )
-    clean_bers = (
-        bers.query("TypeofRating != 'Provisional    '")
-        .query(
-            f"GroundFloorArea > {filters['GroundFloorArea']['lb']}"
-            f" and GroundFloorArea < {filters['GroundFloorArea']['ub']}",
-        )
-        .query(
-            f"LivingAreaPercent > {filters['LivingAreaPercent']['lb']}"
-            f" or LivingAreaPercent < {filters['LivingAreaPercent']['ub']}",
-        )
-        .query(
-            f"HSMainSystemEfficiency > {filters['HSMainSystemEfficiency']['lb']}"
-            f" or HSMainSystemEfficiency < {filters['HSMainSystemEfficiency']['ub']}",
-        )
-        .query(
-            f"WHMainSystemEff > {filters['WHMainSystemEff']['lb']}"
-            f" or WHMainSystemEff < {filters['WHMainSystemEff']['ub']}",
-        )
-        .query(
-            f"HSEffAdjFactor > {filters['HSEffAdjFactor']['lb']}",
-        )
-        .query(
-            f"WHEffAdjFactor > {filters['WHEffAdjFactor']['lb']}",
-        )
-        .query(
-            f"DeclaredLossFactor < {filters['DeclaredLossFactor']['ub']}",
-        )
-        .query(
-            f"ThermalBridgingFactor > {filters['ThermalBridgingFactor']['lb']}"
-            f" or ThermalBridgingFactor <= {filters['ThermalBridgingFactor']['ub']}",
-        )
-    )
-    clean_bers.to_csv(
-        output_filepath, header=True, single_file=True, compression="gzip", index=False
+    st.error(
+        "Cannot yet filter all BERs in ~1GB of RAM, "
+        "see https://github.com/energy-modelling-ireland/ibsg/issues/24"
     )
 
 
